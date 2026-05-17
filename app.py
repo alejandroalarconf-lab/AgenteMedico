@@ -589,4 +589,198 @@ if not comunas_seleccionadas:
 
 # ============================================================================
 # LÓGICA DE BÚSQUEDA
-# =========================================================================
+# ============================================================================
+
+if buscar:
+    st.session_state.busqueda_activa = True
+    with st.spinner("Buscando las mejores horas disponibles..."):
+        st.session_state.resultados = buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio)
+        st.session_state.ultima_busqueda = {
+            "especialidad": especialidad,
+            "comunas": comunas_seleccionadas,
+            "isapre": isapre,
+            "criterio": criterio,
+        }
+
+# ============================================================================
+# UI - RESULTADOS
+# ============================================================================
+
+if st.session_state.busqueda_activa and st.session_state.resultados is not None:
+    resultados = st.session_state.resultados
+    busqueda = st.session_state.ultima_busqueda
+    es_fonasa = busqueda["isapre"] == "fonasa"
+
+    if not resultados:
+        st.warning("No encontramos clínicas con esta especialidad en las comunas seleccionadas.")
+    else:
+        # Hook banner con ahorro máximo
+        ahorro_max = max((r["ahorro"] for r in resultados), default=0)
+
+        if ahorro_max > 0:
+            st.markdown(f"""
+            <div class="hook-banner">
+                <span class="hook-icon">💡</span>
+                <div class="hook-text">
+                    Con tu previsión <strong>{busqueda['isapre'].title()}</strong> puedes ahorrar hasta
+                    <strong>{formatear_precio(ahorro_max)}</strong> en {busqueda['especialidad']}.
+                    Te mostramos las mejores opciones ordenadas para ti.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        elif es_fonasa:
+            st.markdown(f"""
+            <div class="hook-banner">
+                <span class="hook-icon">ℹ️</span>
+                <div class="hook-text">
+                    Mostrando precios particulares para <strong>Fonasa</strong>.
+                    Los precios pueden variar según el prestador.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Header de resultados
+        st.markdown(f"""
+        <div class="resultados-header">
+            <div>
+                <div class="resultados-titulo">{busqueda['especialidad'].title()}</div>
+                <div class="resultados-sub">
+                    {', '.join([c.title() for c in busqueda['comunas']])} ·
+                    {busqueda['isapre'].title()} · {busqueda['criterio']}
+                </div>
+            </div>
+            <div class="resultados-count">{len(resultados)} centros</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Tarjetas de resultados
+        for i, res in enumerate(resultados):
+            es_mejor = (i == 0)
+            card_class = "result-card best" if es_mejor else "result-card"
+            convenio = res["convenio"]
+            dias_label, dias_color = dias_espera_label(res["dias_espera"])
+
+            # Badge de convenio
+            if convenio == "convenio":
+                badge_html = f'<span class="badge badge-blue">✓ Con convenio {busqueda["isapre"].title()}</span>'
+                if res["ahorro"] > 0:
+                    badge_html += f'<span class="savings-text">· Ahorras {formatear_precio(res["ahorro"])}</span>'
+            elif convenio == "fonasa":
+                badge_html = '<span class="badge badge-red">Fonasa (precio particular)</span>'
+            else:
+                badge_html = f'<span class="badge badge-gray">Sin convenio {busqueda["isapre"].title()}</span>'
+
+            # Bloque de precio
+            if convenio == "convenio":
+                precio_html = f"""
+                    <div class="price-tachado">{formatear_precio(res['precio_base'])}</div>
+                    <div class="price-main">{formatear_precio(res['copago'])}</div>
+                    <div class="price-label">tu copago</div>
+                """
+            elif convenio == "fonasa":
+                precio_html = f"""
+                    <div class="price-main fonasa">{formatear_precio(res['copago'])}</div>
+                    <div class="price-label">precio Fonasa</div>
+                """
+            else:
+                precio_html = f"""
+                    <div class="price-tachado">{formatear_precio(res['precio_base'])}</div>
+                    <div class="price-main">{formatear_precio(res['copago'])}</div>
+                    <div class="price-label">precio sin convenio</div>
+                """
+
+            # Métrica de ahorro
+            if res["ahorro"] > 0:
+                ahorro_html = f'<div class="metric-val verde">{formatear_precio(res["ahorro"])}</div>'
+            else:
+                ahorro_html = '<div class="metric-val gris">—</div>'
+
+            # Slots de horas
+            if res["opciones_hora"]:
+                slots_html = "".join([
+                    f'<span class="slot-pill">{o["hora"]}</span>'
+                    for o in res["opciones_hora"][:4]
+                ])
+                slots_label = f'Horas disponibles · {res["opciones_hora"][0]["fecha"]}'
+            else:
+                slots_html = '<span class="slot-pill vacio">Sin horas próximas</span>'
+                slots_label = "Disponibilidad"
+
+            best_badge = '<div class="best-label">⭐ Mejor opción para ti</div>' if es_mejor else ""
+
+            st.markdown(f"""
+            <div class="{card_class}">
+                {best_badge}
+                <div class="card-header">
+                    <div>
+                        <div class="card-name">{res['nombre']}</div>
+                        <div class="card-comuna">📍 {res['distancia_km']:.1f} km · {res['comuna_origen'].title()}</div>
+                    </div>
+                    <div class="price-block">{precio_html}</div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="metric-val {dias_color}">{dias_label}</div>
+                        <div class="metric-label">primera hora</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-val">{res['distancia_km']:.1f} km</div>
+                        <div class="metric-label">distancia</div>
+                    </div>
+                    <div class="metric-box">
+                        {ahorro_html}
+                        <div class="metric-label">ahorras</div>
+                    </div>
+                </div>
+
+                <div class="convenio-row">{badge_html}</div>
+
+                <div class="slots-label">{slots_label}</div>
+                <div class="slots-row">{slots_html}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Botón de reserva
+            if res["url_reserva"] != "#":
+                col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+                with col_btn2:
+                    st.link_button(
+                        f"📅 Reservar en {res['nombre']}",
+                        res["url_reserva"],
+                        use_container_width=True,
+                    )
+
+            # Separador entre tarjetas
+            if i < len(resultados) - 1:
+                st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+
+        # Mapa
+        if resultados:
+            st.markdown('<div class="mapa-titulo">🗺️ Ubicación de los centros encontrados</div>', unsafe_allow_html=True)
+            map_data = []
+            for res in resultados:
+                for centro in CENTROS_MEDICOS:
+                    if centro["nombre"] == res["nombre"]:
+                        map_data.append({
+                            "lat": centro["coordenadas"][0],
+                            "lon": centro["coordenadas"][1],
+                        })
+                        break
+            if map_data:
+                st.map(pd.DataFrame(map_data), latitude="lat", longitude="lon")
+
+# ============================================================================
+# FOOTER
+# ============================================================================
+
+st.markdown("""
+<div class="footer-wrap">
+    <div class="footer-logo">🏥 Buscador de Horas Médicas · Región Metropolitana</div>
+    Los precios y horarios son referenciales. La reserva se realiza en el sitio oficial de cada clínica.<br>
+    Desarrollado para facilitar el acceso a la salud en Chile.
+</div>
+""", unsafe_allow_html=True)
+
+# Limpiar caché al iniciar (evita errores en Streamlit Cloud)
+st.cache_data.clear()
