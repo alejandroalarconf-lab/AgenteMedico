@@ -16,7 +16,20 @@ st.set_page_config(
 )
 
 # ============================================================================
-# SESSION STATE — evita pérdida de resultados al reconectar
+# CONSTANTES DE CONFIGURACIÓN
+# ============================================================================
+
+MAX_RESULTADOS = 6
+MAX_COMUNAS = 3
+DIAS_ESPERA_POR_DEFECTO = (7, 21)
+PORCENTAJE_CONVENIO = 0.25
+PORCENTAJE_SIN_CONVENIO = 0.70
+FACTOR_DISTANCIA = 0.4
+FACTOR_COPAGO = 0.0001  # Dividir por 10000
+FACTOR_ESPERA = 0.2
+
+# ============================================================================
+# SESSION STATE
 # ============================================================================
 
 if "session_id" not in st.session_state:
@@ -29,7 +42,7 @@ if "ultima_busqueda" not in st.session_state:
     st.session_state.ultima_busqueda = {}
 
 # ============================================================================
-# CSS — PALETA INSTITUCIONAL CHILENA
+# CSS MEJORADO
 # ============================================================================
 
 st.markdown("""
@@ -43,7 +56,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding: 0 !important; max-width: 100% !important; }
 
-/* ── HERO ── */
+/* Hero band */
 .hero-band {
     background: #003366;
     padding: 28px 32px 22px;
@@ -73,7 +86,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     margin: 0 -2rem;
 }
 
-/* ── FILTROS ── */
+/* Filtros */
 .filtros-wrap {
     background: white;
     padding: 20px 32px;
@@ -81,7 +94,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     margin: 0 -2rem 2rem -2rem;
 }
 
-/* ── HOOK BANNER ── */
+/* Hook banner */
 .hook-banner {
     background: #E6F1FB;
     border: 1px solid #85B7EB;
@@ -96,7 +109,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 .hook-text { font-size: 13px; color: #0C447C; line-height: 1.5; }
 .hook-text strong { color: #042C53; font-weight: 600; }
 
-/* ── CARDS ── */
+/* Tarjetas */
 .result-card {
     background: white;
     border: 1px solid #D8E4F0;
@@ -110,11 +123,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 }
 .result-card.best {
     border-top: 3px solid #003366;
-    border-left: 1px solid #D8E4F0;
-    border-right: 1px solid #D8E4F0;
-    border-bottom: 1px solid #D8E4F0;
 }
-
 .best-label {
     display: inline-block;
     background: #003366;
@@ -124,9 +133,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     padding: 3px 12px;
     border-radius: 20px;
     margin-bottom: 12px;
-    letter-spacing: .02em;
 }
-
 .card-header {
     display: flex;
     align-items: flex-start;
@@ -154,7 +161,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 .price-main.fonasa { color: #D52B1E; }
 .price-label { font-size: 11px; color: #6B8CAE; }
 
-/* ── MÉTRICAS ── */
+/* Métricas */
 .metrics-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -178,7 +185,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 .metric-val.gris  { color: #aaa; }
 .metric-label { font-size: 11px; color: #6B8CAE; }
 
-/* ── BADGES ── */
+/* Badges */
 .convenio-row { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .badge {
     display: inline-block;
@@ -192,7 +199,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
 .badge-gray   { background: #F0F3F7; color: #5F7A96; }
 .savings-text { font-size: 12px; font-weight: 600; color: #1A6B3C; }
 
-/* ── SLOTS ── */
+/* Slots */
 .slots-label { font-size: 12px; color: #6B8CAE; margin-bottom: 7px; }
 .slots-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 .slot-pill {
@@ -210,7 +217,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     background: #F4F6F9;
 }
 
-/* ── BOTONES ── */
+/* Botones */
 .stButton > button {
     background: #003366 !important;
     color: white !important;
@@ -226,7 +233,6 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     background: #002244 !important;
     box-shadow: 0 4px 12px rgba(0,51,102,0.25) !important;
 }
-
 .stLinkButton > a {
     background: transparent !important;
     color: #003366 !important;
@@ -239,7 +245,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     text-align: center !important;
 }
 
-/* ── SELECTBOX / MULTISELECT ── */
+/* Selectores */
 .stSelectbox label, .stMultiSelect label {
     font-weight: 500 !important;
     color: #003366 !important;
@@ -250,7 +256,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     border: 1px solid #D8E4F0 !important;
 }
 
-/* ── RESULTADOS HEADER ── */
+/* Resultados header */
 .resultados-header {
     display: flex;
     align-items: center;
@@ -274,7 +280,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     border-radius: 20px;
 }
 
-/* ── MAPA ── */
+/* Mapa */
 .mapa-titulo {
     font-size: 14px;
     font-weight: 600;
@@ -284,7 +290,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     border-top: 1px solid #D8E4F0;
 }
 
-/* ── FOOTER ── */
+/* Footer */
 .footer-wrap {
     text-align: center;
     padding: 20px;
@@ -301,14 +307,12 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     color: #003366;
     margin-bottom: 4px;
 }
-
-/* ── WARNING/INFO ── */
 .stWarning, .stInfo { border-radius: 8px !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# DATOS
+# DATOS DE CENTROS MÉDICOS (23 centros)
 # ============================================================================
 
 CENTROS_MEDICOS = [
@@ -335,6 +339,10 @@ CENTROS_MEDICOS = [
     {"nombre": "Clínica MEDS", "comuna": "Las Condes", "coordenadas": (-33.3850, -70.5450), "url_reserva": "https://www.meds.cl/reserva-hora", "precios": {"medicina general": 50000, "pediatría": 60000, "traumatología": 75000, "cardiología": 80000, "dermatología": 85000, "ginecología": 70000}},
 ]
 
+# ============================================================================
+# CONVENIOS POR ISAPRE
+# ============================================================================
+
 CONVENIOS = {
     "banmédica": ["Clínica Alemana", "Clínica Las Condes", "Clínica Bupa Santiago", "Clínica Santa María", "Clínica INDISA", "Clínica Dávila Recoleta", "Clínica MEDS", "Clínica U. de los Andes"],
     "consalud": ["RedSalud Vitacura", "RedSalud Providencia", "RedSalud La Florida", "IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "IntegraMédica Las Condes", "IntegraMédica Maipú", "IntegraMédica La Florida", "Clínica Dávila Recoleta"],
@@ -344,6 +352,10 @@ CONVENIOS = {
     "esencial": ["IntegraMédica Alameda", "IntegraMédica Ñuñoa", "RedSalud Providencia"],
     "fonasa": [],
 }
+
+# ============================================================================
+# COMUNAS
+# ============================================================================
 
 TODAS_COMUNAS = {
     "providencia": (-33.437, -70.650),
@@ -357,13 +369,32 @@ TODAS_COMUNAS = {
     "estacion central": (-33.470, -70.700),
 }
 
+# ============================================================================
+# DÍAS DE ESPERA POR ESPECIALIDAD
+# ============================================================================
+
 DIAS_ESPERA = {
-    "medicina general": (1, 5), "dermatología": (15, 45), "psiquiatría": (20, 60),
-    "traumatología": (2, 10), "ginecología": (3, 12), "oftalmología": (7, 20),
-    "cardiología": (5, 15), "pediatría": (1, 7), "neurología": (10, 30),
-    "nutrición": (3, 10), "kinesiología": (1, 5), "urología": (5, 15),
-    "laboratorio": (1, 3), "imagenes": (2, 5), "dental": (2, 7), "examenes": (1, 4),
+    "medicina general": (1, 5),
+    "dermatología": (15, 45),
+    "psiquiatría": (20, 60),
+    "traumatología": (2, 10),
+    "ginecología": (3, 12),
+    "oftalmología": (7, 20),
+    "cardiología": (5, 15),
+    "pediatría": (1, 7),
+    "neurología": (10, 30),
+    "nutrición": (3, 10),
+    "kinesiología": (1, 5),
+    "urología": (5, 15),
+    "laboratorio": (1, 3),
+    "imagenes": (2, 5),
+    "dental": (2, 7),
+    "examenes": (1, 4),
 }
+
+# ============================================================================
+# MÉDICOS POR ESPECIALIDAD
+# ============================================================================
 
 MEDICOS_POR_ESPECIALIDAD = {
     "medicina general": ["Dr. Juan Pablo Silva", "Dra. María Fernanda López", "Dr. Carlos Alberto Rojas"],
@@ -385,20 +416,24 @@ MEDICOS_POR_ESPECIALIDAD = {
 }
 
 # ============================================================================
-# FUNCIONES
+# FUNCIONES AUXILIARES
 # ============================================================================
 
-def formatear_precio(valor):
+def formatear_precio(valor: int) -> str:
+    """Formatea un número como precio chileno (ej: 45000 -> $45.000)"""
     return f"${valor:,.0f}".replace(",", ".")
 
-def generar_horas_disponibles(dias_espera, especialidad):
-    horarios = ["08:30","09:00","09:30","10:00","10:30","11:00","11:30",
-                "12:00","12:30","14:00","14:30","15:00","15:30",
-                "16:00","16:30","17:00","17:30","18:00","18:30"]
+def generar_horas_disponibles(dias_espera: int, especialidad: str) -> list:
+    """Genera entre 1 y 3 opciones de hora y médico para una clínica"""
+    horarios = ["08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+                "12:00", "12:30", "14:00", "14:30", "15:00", "15:30",
+                "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"]
+    
     fecha_base = datetime.now() + timedelta(days=dias_espera)
     medicos = MEDICOS_POR_ESPECIALIDAD.get(especialidad, ["Dr. Médico General"])
     num_opciones = random.randint(1, 3)
     opciones = []
+    
     for _ in range(num_opciones):
         dias_offset = random.randint(0, 2)
         fecha_opcion = fecha_base + timedelta(days=dias_offset)
@@ -407,47 +442,74 @@ def generar_horas_disponibles(dias_espera, especialidad):
             "hora": random.choice(horarios),
             "medico": random.choice(medicos),
         })
+    
     opciones.sort(key=lambda x: (x["fecha"], x["hora"]))
     return opciones
 
-def buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio):
+def dias_espera_label(dias: int) -> tuple:
+    """Convierte días de espera en texto legible y clase CSS"""
+    if dias <= 1:
+        return "Mañana", "verde"
+    elif dias <= 5:
+        return f"{dias} días", "verde"
+    elif dias <= 15:
+        return f"{dias} días", "ambar"
+    else:
+        return f"{dias} días", "gris"
+
+def buscar_horas(especialidad: str, comunas_seleccionadas: list, isapre: str, criterio: str) -> list:
+    """Busca horas médicas considerando múltiples comunas de origen"""
     clinicas_isapre = CONVENIOS.get(isapre, [])
     es_fonasa = (isapre == "fonasa")
     mejores_por_clinica = {}
 
     for centro in CENTROS_MEDICOS:
+        # Validar que la especialidad exista en esta clínica
         if especialidad not in centro["precios"]:
             continue
+        
         nombre = centro["nombre"]
         precio_base = centro["precios"][especialidad]
         tiene_convenio = nombre in clinicas_isapre
 
+        # Calcular distancia a la comuna más cercana
         distancia_minima = float('inf')
         comuna_mas_cercana = None
+        
         for comuna in comunas_seleccionadas:
             if comuna in TODAS_COMUNAS:
-                d = geodesic(TODAS_COMUNAS[comuna], centro["coordenadas"]).kilometers
-                if d < distancia_minima:
-                    distancia_minima = d
-                    comuna_mas_cercana = comuna
+                try:
+                    distancia = geodesic(TODAS_COMUNAS[comuna], centro["coordenadas"]).kilometers
+                    if distancia < distancia_minima:
+                        distancia_minima = distancia
+                        comuna_mas_cercana = comuna
+                except Exception:
+                    continue
+        
         if distancia_minima == float('inf'):
             continue
 
+        # Calcular copago según previsión
         if es_fonasa:
             copago = precio_base
             etiqueta_convenio = "fonasa"
             ahorro = 0
         elif tiene_convenio:
-            copago = int(precio_base * 0.25)
+            copago = int(precio_base * PORCENTAJE_CONVENIO)
             etiqueta_convenio = "convenio"
             ahorro = precio_base - copago
         else:
-            copago = int(precio_base * 0.70)
+            copago = int(precio_base * PORCENTAJE_SIN_CONVENIO)
             etiqueta_convenio = "sin_convenio"
             ahorro = 0
 
-        min_dias, max_dias = DIAS_ESPERA.get(especialidad, (5, 15))
-        dias_espera = random.randint(min_dias * 2, max_dias * 2) if es_fonasa else random.randint(min_dias, max_dias)
+        # Días de espera
+        min_dias, max_dias = DIAS_ESPERA.get(especialidad, DIAS_ESPERA_POR_DEFECTO)
+        if es_fonasa:
+            dias_espera = random.randint(min_dias * 2, max_dias * 2)
+        else:
+            dias_espera = random.randint(min_dias, max_dias)
+        
         opciones_hora = generar_horas_disponibles(dias_espera, especialidad)
 
         mejores_por_clinica[nombre] = {
@@ -464,26 +526,23 @@ def buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio):
         }
 
     resultados = list(mejores_por_clinica.values())
+    
+    # Ordenar según criterio del usuario
     if criterio == "Más cercano primero":
         resultados.sort(key=lambda x: (round(x["distancia_km"], 1), x["copago"]))
     elif criterio == "Más barato primero":
         resultados.sort(key=lambda x: (x["copago"], round(x["distancia_km"], 1)))
-    else:
-        resultados.sort(key=lambda x: (x["distancia_km"] * 0.4) + (x["copago"] / 10000) + (x["dias_espera"] * 0.2))
-    return resultados[:6]
-
-def dias_espera_label(dias):
-    if dias <= 1:
-        return "Mañana", "verde"
-    elif dias <= 5:
-        return f"{dias} días", "verde"
-    elif dias <= 15:
-        return f"{dias} días", "ambar"
-    else:
-        return f"{dias} días", "gris"
+    else:  # Balanceado
+        resultados.sort(key=lambda x: (
+            x["distancia_km"] * FACTOR_DISTANCIA + 
+            x["copago"] * FACTOR_COPAGO + 
+            x["dias_espera"] * FACTOR_ESPERA
+        ))
+    
+    return resultados[:MAX_RESULTADOS]
 
 # ============================================================================
-# UI — HERO
+# UI - HERO BANNER
 # ============================================================================
 
 st.markdown("""
@@ -496,7 +555,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# UI — FILTROS
+# UI - FILTROS
 # ============================================================================
 
 st.markdown("<div class='filtros-wrap'>", unsafe_allow_html=True)
@@ -508,10 +567,10 @@ with col2:
     isapre = st.selectbox("🏦 Previsión de salud", list(CONVENIOS.keys()))
 
 comunas_seleccionadas = st.multiselect(
-    "📍 ¿Desde qué comuna buscas? (máx. 3)",
+    f"📍 ¿Desde qué comuna buscas? (máx. {MAX_COMUNAS})",
     options=list(TODAS_COMUNAS.keys()),
     default=["providencia"],
-    max_selections=3,
+    max_selections=MAX_COMUNAS,
 )
 
 col3, col4 = st.columns([2, 1])
@@ -523,199 +582,11 @@ with col4:
 
 st.markdown("</div>", unsafe_allow_html=True)
 
+# Validación de comunas
 if not comunas_seleccionadas:
     st.warning("⚠️ Selecciona al menos una comuna para buscar.")
     st.stop()
 
 # ============================================================================
 # LÓGICA DE BÚSQUEDA
-# ============================================================================
-
-if buscar:
-    st.session_state.busqueda_activa = True
-    with st.spinner("Buscando las mejores horas disponibles..."):
-        st.session_state.resultados = buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio)
-        st.session_state.ultima_busqueda = {
-            "especialidad": especialidad,
-            "comunas": comunas_seleccionadas,
-            "isapre": isapre,
-            "criterio": criterio,
-        }
-
-# ============================================================================
-# UI — RESULTADOS
-# ============================================================================
-
-if st.session_state.busqueda_activa and st.session_state.resultados is not None:
-    resultados = st.session_state.resultados
-    busqueda = st.session_state.ultima_busqueda
-    es_fonasa = busqueda["isapre"] == "fonasa"
-
-    if not resultados:
-        st.warning("No encontramos clínicas con esta especialidad en las comunas seleccionadas.")
-    else:
-        # Calcular ahorro máximo para el hook banner
-        ahorro_max = max((r["ahorro"] for r in resultados), default=0)
-
-        # Hook banner
-        if ahorro_max > 0:
-            st.markdown(f"""
-            <div class="hook-banner">
-                <span class="hook-icon">💡</span>
-                <div class="hook-text">
-                    Con tu previsión <strong>{busqueda['isapre'].title()}</strong> puedes ahorrar hasta
-                    <strong>{formatear_precio(ahorro_max)}</strong> en {busqueda['especialidad']}.
-                    Te mostramos las mejores opciones ordenadas para ti.
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        elif es_fonasa:
-            st.markdown(f"""
-            <div class="hook-banner">
-                <span class="hook-icon">ℹ️</span>
-                <div class="hook-text">
-                    Mostrando precios particulares para <strong>Fonasa</strong>.
-                    Los precios pueden variar según el prestador.
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        # Header resultados
-        st.markdown(f"""
-        <div class="resultados-header">
-            <div>
-                <div class="resultados-titulo">{busqueda['especialidad'].title()}</div>
-                <div class="resultados-sub">
-                    {', '.join([c.title() for c in busqueda['comunas']])} ·
-                    {busqueda['isapre'].title()} · {busqueda['criterio']}
-                </div>
-            </div>
-            <div class="resultados-count">{len(resultados)} centros</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Cards
-        for i, res in enumerate(resultados):
-            es_mejor = (i == 0)
-            card_class = "result-card best" if es_mejor else "result-card"
-            convenio = res["convenio"]
-            dias_label, dias_color = dias_espera_label(res["dias_espera"])
-
-            # Badge convenio
-            if convenio == "convenio":
-                badge_html = f'<span class="badge badge-blue">✓ Con convenio {busqueda["isapre"].title()}</span>'
-                if res["ahorro"] > 0:
-                    badge_html += f'<span class="savings-text">· Ahorras {formatear_precio(res["ahorro"])}</span>'
-            elif convenio == "fonasa":
-                badge_html = '<span class="badge badge-red">Fonasa (precio particular)</span>'
-            else:
-                badge_html = f'<span class="badge badge-gray">Sin convenio {busqueda["isapre"].title()}</span>'
-
-            # Precio
-            if convenio == "convenio":
-                precio_html = f"""
-                    <div class="price-tachado">{formatear_precio(res['precio_base'])}</div>
-                    <div class="price-main">{formatear_precio(res['copago'])}</div>
-                    <div class="price-label">tu copago</div>
-                """
-            elif convenio == "fonasa":
-                precio_html = f"""
-                    <div class="price-main fonasa">{formatear_precio(res['copago'])}</div>
-                    <div class="price-label">precio Fonasa</div>
-                """
-            else:
-                precio_html = f"""
-                    <div class="price-tachado">{formatear_precio(res['precio_base'])}</div>
-                    <div class="price-main">{formatear_precio(res['copago'])}</div>
-                    <div class="price-label">precio sin convenio</div>
-                """
-
-            # Ahorro métrica
-            if res["ahorro"] > 0:
-                ahorro_html = f'<div class="metric-val verde">{formatear_precio(res["ahorro"])}</div>'
-            else:
-                ahorro_html = '<div class="metric-val gris">—</div>'
-
-            # Slots
-            if res["opciones_hora"]:
-                slots_html = "".join([
-                    f'<span class="slot-pill">{o["hora"]}</span>'
-                    for o in res["opciones_hora"][:4]
-                ])
-                slots_label = f'Horas disponibles · {res["opciones_hora"][0]["fecha"]}'
-            else:
-                slots_html = '<span class="slot-pill vacio">Sin horas próximas</span>'
-                slots_label = "Disponibilidad"
-
-            best_badge = '<div class="best-label">⭐ Mejor opción para ti</div>' if es_mejor else ""
-
-            st.markdown(f"""
-            <div class="{card_class}">
-                {best_badge}
-                <div class="card-header">
-                    <div>
-                        <div class="card-name">{res['nombre']}</div>
-                        <div class="card-comuna">📍 {res['distancia_km']:.1f} km · {res['comuna_origen'].title()}</div>
-                    </div>
-                    <div class="price-block">{precio_html}</div>
-                </div>
-
-                <div class="metrics-grid">
-                    <div class="metric-box">
-                        <div class="metric-val {dias_color}">{dias_label}</div>
-                        <div class="metric-label">primera hora</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-val">{res['distancia_km']:.1f} km</div>
-                        <div class="metric-label">distancia</div>
-                    </div>
-                    <div class="metric-box">
-                        {ahorro_html}
-                        <div class="metric-label">ahorras</div>
-                    </div>
-                </div>
-
-                <div class="convenio-row">{badge_html}</div>
-
-                <div class="slots-label">{slots_label}</div>
-                <div class="slots-row">{slots_html}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Botón de reserva
-            if res["url_reserva"] != "#":
-                col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
-                with col_btn2:
-                    st.link_button(
-                        f"📅 Reservar en {res['nombre']}",
-                        res["url_reserva"],
-                        use_container_width=True,
-                    )
-
-            if i < len(resultados) - 1:
-                st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-
-        # Mapa
-        st.markdown('<div class="mapa-titulo">🗺️ Ubicación de los centros encontrados</div>', unsafe_allow_html=True)
-        map_data = []
-        for res in resultados:
-            for centro in CENTROS_MEDICOS:
-                if centro["nombre"] == res["nombre"]:
-                    map_data.append({
-                        "lat": centro["coordenadas"][0],
-                        "lon": centro["coordenadas"][1],
-                    })
-        if map_data:
-            st.map(pd.DataFrame(map_data), latitude="lat", longitude="lon")
-
-# ============================================================================
-# FOOTER
-# ============================================================================
-
-st.markdown("""
-<div class="footer-wrap">
-    <div class="footer-logo">🏥 Buscador de Horas Médicas · Región Metropolitana</div>
-    Los precios y horarios son referenciales. La reserva se realiza en el sitio oficial de cada clínica.<br>
-    Desarrollado para facilitar el acceso a la salud en Chile.
-</div>
-""", unsafe_allow_html=True)
+# =========================================================================
