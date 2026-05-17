@@ -1,6 +1,7 @@
 import streamlit as st
 import random
 from geopy.distance import geodesic
+from datetime import datetime, timedelta
 
 st.set_page_config(page_title="Buscador de Horas Médicas - Chile", page_icon="🏥", layout="wide")
 
@@ -92,7 +93,7 @@ CENTROS_MEDICOS = [
 ]
 
 # ============================================================================
-# CONVENIOS POR ISAPRE (incluye Fonasa)
+# CONVENIOS POR ISAPRE
 # ============================================================================
 
 CONVENIOS = {
@@ -106,7 +107,7 @@ CONVENIOS = {
 }
 
 # ============================================================================
-# COMUNAS DISPONIBLES (todas las que tienen clínicas)
+# COMUNAS
 # ============================================================================
 
 TODAS_COMUNAS = {
@@ -139,26 +140,79 @@ DIAS_ESPERA = {
     "urología": (5, 15),
 }
 
-ESPECIALIDADES = list(DIAS_ESPERA.keys())
-ISAPRES = list(CONVENIOS.keys())
-LISTA_COMUNAS = list(TODAS_COMUNAS.keys())
+# ============================================================================
+# NOMBRES DE MÉDICOS POR ESPECIALIDAD (datos realistas)
+# ============================================================================
+
+MEDICOS_POR_ESPECIALIDAD = {
+    "medicina general": ["Dr. Juan Pablo Silva", "Dra. María Fernanda López", "Dr. Carlos Alberto Rojas", "Dra. Patricia González", "Dr. Roberto Méndez"],
+    "traumatología": ["Dr. Cristián Labbé", "Dra. Macarena Valdés", "Dr. Sebastián Herrera", "Dr. Andrés Tagle", "Dra. Paulina Sanhueza"],
+    "cardiología": ["Dr. Jorge Bartolucci", "Dra. Pamela Serón", "Dr. Ramón Corbalán", "Dra. Daniela Aravena", "Dr. Mario Castro"],
+    "dermatología": ["Dra. Claudia Aranís", "Dr. Sergio González", "Dra. Jimena Schnettler", "Dr. Felipe Velasco", "Dra. Valentina Ruiz"],
+    "pediatría": ["Dra. Marcela Bahamondes", "Dr. Tomás Alliende", "Dra. Andrea Oyarzún", "Dr. Francisco Moraga", "Dra. Carolina Herrera"],
+    "ginecología": ["Dra. Paulina Vega", "Dr. Juan Enrique Montero", "Dra. Soledad Díaz", "Dr. Patricio Barriga", "Dra. Francisca Santander"],
+    "oftalmología": ["Dr. Rodrigo Galdames", "Dra. Andrea Lutz", "Dr. Gonzalo Rojas", "Dra. Paula Pérez", "Dr. Felipe Valenzuela"],
+    "neurología": ["Dr. Pedro Chaná", "Dra. Paulina Orellana", "Dr. Claudio Hetz", "Dra. Bernarda Garrido", "Dr. Rodrigo Saavedra"],
+    "psiquiatría": ["Dr. Claudio Fuenzalida", "Dra. María Elena Gorostiza", "Dr. Pablo López-Silva", "Dra. Javiera Duarte", "Dr. Álvaro Jiménez"],
+    "nutrición": ["Dra. Vivianne Sotomayor", "Dr. Rodrigo Aránguiz", "Dra. Javiera Torres", "Dr. Cristián Ríos", "Dra. Daniela Pinto"],
+    "kinesiología": ["Kine. Felipe González", "Kine. Valentina Méndez", "Kine. Cristóbal Jiménez", "Kine. Camila Rojas", "Kine. Sebastián Muñoz"],
+    "urología": ["Dr. Mauricio Hoyl", "Dr. Pedro Bórquez", "Dra. (URG) Paola Pizarro", "Dr. José Miguel Rojas", "Dr. Álvaro Saavedra"],
+    "gastroenterología": ["Dr. Rodrigo Quera", "Dra. Lilian Flores", "Dr. Pablo Orellana", "Dra. Andrea Peralta", "Dr. Juan Carlos Rojas"],
+    "endocrinología": ["Dra. Ana María Lillo", "Dr. Patricio Salman", "Dra. Daniela Mardones", "Dr. Rodrigo Muñoz", "Dra. Carolina Tapia"],
+    "otorrino": ["Dr. Juan Pablo Hidalgo", "Dra. Paulina Aldunate", "Dr. Cristián Papuzinski", "Dra. Macarena Valenzuela", "Dr. Andrés Alvo"],
+}
 
 # ============================================================================
-# FUNCIONES
+# FUNCIONES AUXILIARES
 # ============================================================================
 
 def formatear_precio(valor):
     return f"${valor:,.0f}".replace(",", ".")
 
+def generar_horas_disponibles(dias_espera, especialidad):
+    """Genera entre 1 y 3 opciones de hora y médico para una clínica"""
+    # Horarios disponibles (en horas desde 8:00 a 19:00)
+    horarios = ["08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", 
+                "12:00", "12:30", "14:00", "14:30", "15:00", "15:30", 
+                "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"]
+    
+    # Fecha de la hora (dentro de los días de espera)
+    fecha_base = datetime.now() + timedelta(days=dias_espera)
+    
+    # Obtener médicos para esta especialidad
+    medicos = MEDICOS_POR_ESPECIALIDAD.get(especialidad, ["Dr. Médico General"])
+    
+    # Generar entre 1 y 3 opciones de hora
+    num_opciones = random.randint(1, 3)
+    opciones = []
+    
+    for i in range(num_opciones):
+        # Fecha: puede ser el mismo día base o hasta 3 días después
+        dias_offset = random.randint(0, 3)
+        fecha_opcion = fecha_base + timedelta(days=dias_offset)
+        fecha_str = fecha_opcion.strftime("%d/%m/%Y")
+        
+        # Hora aleatoria
+        hora = random.choice(horarios)
+        
+        # Médico aleatorio
+        medico = random.choice(medicos)
+        
+        # Precio según la especialidad (puede variar según el médico)
+        opciones.append({
+            "fecha": fecha_str,
+            "hora": hora,
+            "medico": medico
+        })
+    
+    # Ordenar por fecha y hora
+    opciones.sort(key=lambda x: (x["fecha"], x["hora"]))
+    return opciones
+
 def buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio):
-    """
-    Busca horas médicas considerando múltiples comunas de origen.
-    Para cada clínica, calcula la distancia a la comuna más cercana de las seleccionadas.
-    """
+    """Busca horas médicas considerando múltiples comunas"""
     clinicas_isapre = CONVENIOS.get(isapre, [])
     es_fonasa = (isapre == "fonasa")
-    
-    # Diccionario para almacenar el mejor resultado de cada clínica
     mejores_por_clinica = {}
     
     for centro in CENTROS_MEDICOS:
@@ -169,7 +223,7 @@ def buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio):
         precio_base = centro["precios"][especialidad]
         tiene_convenio = nombre_centro in clinicas_isapre
         
-        # Calcular la distancia a la comuna más cercana de las seleccionadas
+        # Distancia a la comuna más cercana
         distancia_minima = float('inf')
         comuna_mas_cercana = None
         
@@ -181,11 +235,10 @@ def buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio):
                     distancia_minima = distancia
                     comuna_mas_cercana = comuna
         
-        # Si no se encontró ninguna comuna válida, saltar
         if distancia_minima == float('inf'):
             continue
         
-        # Reglas de copago según Isapre/Fonasa
+        # Cálculo de copago
         if es_fonasa:
             copago = precio_base
             etiqueta_convenio = "🏥 Fonasa (particular)"
@@ -203,6 +256,9 @@ def buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio):
         else:
             dias_espera = random.randint(min_dias, max_dias)
         
+        # Generar opciones de hora y médico
+        opciones_hora = generar_horas_disponibles(dias_espera, especialidad)
+        
         mejores_por_clinica[nombre_centro] = {
             "nombre": nombre_centro,
             "distancia_km": distancia_minima,
@@ -212,11 +268,12 @@ def buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio):
             "dias_espera": dias_espera,
             "convenio": etiqueta_convenio,
             "url_reserva": centro.get("url_reserva", "#"),
+            "opciones_hora": opciones_hora,
         }
     
-    # Convertir a lista y ordenar
     resultados = list(mejores_por_clinica.values())
     
+    # Ordenar según criterio
     if criterio == "Más cercano primero":
         resultados.sort(key=lambda x: (round(x["distancia_km"], 1), x["copago"]))
     elif criterio == "Más barato primero":
@@ -224,7 +281,7 @@ def buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio):
     else:  # Balanceado
         resultados.sort(key=lambda x: (x["distancia_km"] * 0.4) + (x["copago"] / 10000) + (x["dias_espera"] * 0.2))
     
-    return resultados[:6]  # Mostrar hasta 6 resultados
+    return resultados[:6]
 
 # ============================================================================
 # INTERFAZ WEB
@@ -236,33 +293,30 @@ st.markdown("---")
 # Fila 1: Especialidad e Isapre
 col1, col2 = st.columns(2)
 with col1:
-    especialidad = st.selectbox("📋 Especialidad", ESPECIALIDADES)
+    especialidad = st.selectbox("📋 Especialidad", list(DIAS_ESPERA.keys()))
 with col2:
-    isapre = st.selectbox("🏦 Isapre / Fonasa", ISAPRES)
+    isapre = st.selectbox("🏦 Isapre / Fonasa", list(CONVENIOS.keys()))
 
 st.markdown("---")
 
-# Fila 2: Selección de comunas (múltiple)
+# Fila 2: Selección de comunas
 st.subheader("📍 ¿Dónde buscas?")
 st.caption("Puedes seleccionar entre 1 y 3 comunas. El sistema usará la más cercana a cada clínica.")
 
 comunas_seleccionadas = st.multiselect(
     "Selecciona comunas (máximo 3):",
-    options=LISTA_COMUNAS,
+    options=list(TODAS_COMUNAS.keys()),
     default=["providencia"],
     max_selections=3
 )
 
-# Validar que haya al menos una comuna
 if not comunas_seleccionadas:
     st.warning("⚠️ Debes seleccionar al menos una comuna.")
     st.stop()
 
-# Fila 3: Criterio de orden
 st.markdown("---")
 criterio = st.selectbox("📊 Ordenar por", ["Más cercano primero", "Más barato primero", "Balanceado"])
 
-# Botón de búsqueda
 st.markdown("---")
 buscar = st.button("🔍 Buscar hora médica", use_container_width=True)
 
@@ -271,26 +325,25 @@ buscar = st.button("🔍 Buscar hora médica", use_container_width=True)
 # ============================================================================
 
 if buscar:
-    with st.spinner("Buscando en todas las comunas seleccionadas..."):
+    with st.spinner("Buscando horas disponibles..."):
         resultados = buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio)
     
     if not resultados:
         st.warning("No encontramos clínicas con esta especialidad en las comunas seleccionadas.")
     else:
-        # Mostrar resumen de la búsqueda
         st.markdown("---")
-        st.subheader(f"📋 Resultados para {especialidad.title()}")
-        st.caption(f"Buscando en: {', '.join([c.title() for c in comunas_seleccionadas])} | Isapre: {isapre.title()} | Orden: {criterio}")
+        st.subheader(f"📋 Horas disponibles para {especialidad.title()}")
+        st.caption(f"Buscando en: {', '.join([c.title() for c in comunas_seleccionadas])} | Isapre: {isapre.title()}")
         
-        # Mostrar resultados en 2 columnas
-        cols = st.columns(2)
+        # Mostrar resultados
         for i, res in enumerate(resultados):
-            with cols[i % 2]:
-                with st.container(border=True):
-                    st.markdown(f"**{i+1}. {res['nombre']}**")
+            with st.container(border=True):
+                col_info, col_horas = st.columns([1, 2])
+                
+                with col_info:
+                    st.markdown(f"### {i+1}. {res['nombre']}")
                     st.write(f"📍 Desde {res['comuna_origen'].title()}: **{res['distancia_km']:.1f} km**")
                     st.write(f"💰 Copago: **{formatear_precio(res['copago'])}**")
-                    st.write(f"⏱️ Espera: **{res['dias_espera']} días**")
                     st.write(f"🏥 Precio base: {formatear_precio(res['precio_base'])}")
                     st.write(f"🤝 {res['convenio']}")
                     
@@ -300,11 +353,19 @@ if buscar:
                         st.warning("⚠️ Sin convenio - copago más alto")
                     else:
                         st.info("🏥 Tarifa particular (Fonasa)")
+                
+                with col_horas:
+                    st.markdown("**📅 Horas disponibles:**")
+                    for opcion in res['opciones_hora']:
+                        st.write(f"- 🕐 **{opcion['fecha']}** a las **{opcion['hora']}** hrs. con {opcion['medico']}")
+                    
+                    if res['url_reserva'] != "#":
+                        st.link_button("📅 Reservar esta hora", res['url_reserva'], use_container_width=True)
+                
+                st.divider()
         
-        # Mostrar ubicación de los centros en un mapa
-        st.markdown("---")
-        st.subheader("🗺️ Ubicación de los centros médicos")
-        
+        # Mapa
+        st.subheader("🗺️ Ubicación de los centros")
         map_data = []
         for res in resultados[:6]:
             for centro in CENTROS_MEDICOS:
@@ -321,4 +382,4 @@ if buscar:
             st.map(df, latitude="lat", longitude="lon")
 
 st.markdown("---")
-st.caption("Buscador de horas médicas - Puedes seleccionar hasta 3 comunas | Prototipo Chile")
+st.caption("🏥 Buscador de horas médicas - Muestra horas disponibles y profesionales | Prototipo Chile")
