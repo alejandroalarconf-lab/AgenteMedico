@@ -16,25 +16,35 @@ st.set_page_config(
 )
 
 # ============================================================================
+# FIX: RECONEXIÓN Y ESTABILIDAD
+# ============================================================================
+
+# Evita errores de sesión expirada en Streamlit Cloud
+if "session_id" not in st.session_state:
+    st.session_state.session_id = random.randint(1000, 9999)
+
+if "resultados" not in st.session_state:
+    st.session_state.resultados = None
+
+if "busqueda_activa" not in st.session_state:
+    st.session_state.busqueda_activa = False
+
+# ============================================================================
 # CSS PERSONALIZADO - DISEÑO PROFESIONAL
 # ============================================================================
 
 st.markdown("""
 <style>
-    /* Importar fuente moderna */
     @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
     
-    /* Estilos globales */
     html, body, [class*="css"] {
         font-family: 'Inter', sans-serif;
     }
     
-    /* Fondo principal */
     .main > div {
         background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
     }
     
-    /* Encabezado con barra azul */
     .custom-header {
         background: linear-gradient(90deg, #003366 0%, #0055a4 100%);
         padding: 0rem;
@@ -57,7 +67,6 @@ st.markdown("""
         margin-bottom: 0 !important;
     }
     
-    /* Tarjetas de resultados */
     .result-card {
         background: white;
         border-radius: 16px;
@@ -73,7 +82,6 @@ st.markdown("""
         box-shadow: 0 8px 24px rgba(0,0,0,0.12);
     }
     
-    /* Títulos de tarjetas */
     .card-title {
         color: #003366;
         font-size: 1.3rem;
@@ -83,7 +91,6 @@ st.markdown("""
         padding-left: 0.75rem;
     }
     
-    /* Información de la tarjeta */
     .card-info {
         color: #495057;
         font-size: 0.9rem;
@@ -94,7 +101,6 @@ st.markdown("""
         color: #003366;
     }
     
-    /* Horas disponibles */
     .hours-list {
         background: #f8f9fa;
         border-radius: 12px;
@@ -115,7 +121,6 @@ st.markdown("""
         margin-bottom: 0;
     }
     
-    /* Botón principal */
     .stButton > button {
         background: linear-gradient(90deg, #0066cc 0%, #0052a3 100%);
         color: white;
@@ -134,7 +139,6 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0,102,204,0.3);
     }
     
-    /* Selectores */
     .stSelectbox > div > div {
         border-radius: 12px;
         border: 1px solid #dee2e6;
@@ -148,7 +152,6 @@ st.markdown("""
         letter-spacing: 0.5px;
     }
     
-    /* Multiselect */
     .stMultiSelect > div > div {
         border-radius: 12px;
         border: 1px solid #dee2e6;
@@ -162,7 +165,6 @@ st.markdown("""
         letter-spacing: 0.5px;
     }
     
-    /* Badges de convenio */
     .badge-success {
         background: #d4edda;
         color: #155724;
@@ -193,13 +195,11 @@ st.markdown("""
         display: inline-block;
     }
     
-    /* Separador */
     hr {
         margin: 1.5rem 0;
         border-color: #dee2e6;
     }
     
-    /* Pie de página */
     .footer {
         text-align: center;
         padding: 1.5rem;
@@ -209,19 +209,13 @@ st.markdown("""
         margin-top: 2rem;
     }
     
-    /* Spinner */
     .stSpinner > div {
         border-color: #0066cc transparent transparent transparent;
     }
     
-    /* Ajustes responsive */
     @media (max-width: 768px) {
-        .card-title {
-            font-size: 1.1rem;
-        }
-        .custom-header h1 {
-            font-size: 1.5rem !important;
-        }
+        .card-title { font-size: 1.1rem; }
+        .custom-header h1 { font-size: 1.5rem !important; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -330,8 +324,8 @@ def formatear_precio(valor):
     return f"${valor:,.0f}".replace(",", ".")
 
 def generar_horas_disponibles(dias_espera, especialidad):
-    horarios = ["08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", 
-                "12:00", "12:30", "14:00", "14:30", "15:00", "15:30", 
+    horarios = ["08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+                "12:00", "12:30", "14:00", "14:30", "15:00", "15:30",
                 "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"]
     fecha_base = datetime.now() + timedelta(days=dias_espera)
     medicos = MEDICOS_POR_ESPECIALIDAD.get(especialidad, ["Dr. Médico General"])
@@ -351,14 +345,14 @@ def buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio):
     clinicas_isapre = CONVENIOS.get(isapre, [])
     es_fonasa = (isapre == "fonasa")
     mejores_por_clinica = {}
-    
+
     for centro in CENTROS_MEDICOS:
         if especialidad not in centro["precios"]:
             continue
         nombre_centro = centro["nombre"]
         precio_base = centro["precios"][especialidad]
         tiene_convenio = nombre_centro in clinicas_isapre
-        
+
         distancia_minima = float('inf')
         comuna_mas_cercana = None
         for comuna in comunas_seleccionadas:
@@ -369,7 +363,7 @@ def buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio):
                     comuna_mas_cercana = comuna
         if distancia_minima == float('inf'):
             continue
-        
+
         if es_fonasa:
             copago = precio_base
             etiqueta_convenio = "🏥 Fonasa (particular)"
@@ -379,21 +373,21 @@ def buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio):
         else:
             copago = int(precio_base * 0.70)
             etiqueta_convenio = "❌ Sin convenio"
-        
+
         min_dias, max_dias = DIAS_ESPERA.get(especialidad, (5, 15))
         if es_fonasa:
             dias_espera = random.randint(min_dias * 2, max_dias * 2)
         else:
             dias_espera = random.randint(min_dias, max_dias)
-        
+
         opciones_hora = generar_horas_disponibles(dias_espera, especialidad)
-        
+
         mejores_por_clinica[nombre_centro] = {
             "nombre": nombre_centro, "distancia_km": distancia_minima, "comuna_origen": comuna_mas_cercana,
             "copago": copago, "precio_base": precio_base, "dias_espera": dias_espera,
             "convenio": etiqueta_convenio, "url_reserva": centro.get("url_reserva", "#"), "opciones_hora": opciones_hora,
         }
-    
+
     resultados = list(mejores_por_clinica.values())
     if criterio == "Más cercano primero":
         resultados.sort(key=lambda x: (round(x["distancia_km"], 1), x["copago"]))
@@ -437,38 +431,50 @@ criterio = st.selectbox("📊 Ordenar por", ["Más cercano primero", "Más barat
 
 st.markdown("---")
 
-buscar = st.button("🔍 Buscar hora médica", use_container_width=True)
-
 # ============================================================================
-# RESULTADOS
+# FIX: BOTÓN CON SESSION STATE (evita pérdida de resultados al reconectar)
 # ============================================================================
 
-if buscar:
+if st.button("🔍 Buscar hora médica", use_container_width=True):
+    st.session_state.busqueda_activa = True
     with st.spinner("Buscando horas disponibles..."):
-        resultados = buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio)
-    
+        st.session_state.resultados = buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio)
+        st.session_state.ultima_busqueda = {
+            "especialidad": especialidad,
+            "comunas": comunas_seleccionadas,
+            "isapre": isapre,
+            "criterio": criterio,
+        }
+
+# ============================================================================
+# RESULTADOS (se mantienen aunque Streamlit reconecte)
+# ============================================================================
+
+if st.session_state.busqueda_activa and st.session_state.resultados is not None:
+    resultados = st.session_state.resultados
+    busqueda = st.session_state.ultima_busqueda
+
     if not resultados:
         st.warning("No encontramos clínicas con esta especialidad en las comunas seleccionadas.")
     else:
         st.markdown("---")
-        st.markdown(f"## 📋 Horas disponibles para {especialidad.title()}")
-        st.caption(f"Buscando en: {', '.join([c.title() for c in comunas_seleccionadas])} | Isapre: {isapre.title()} | Orden: {criterio}")
+        st.markdown(f"## 📋 Horas disponibles para {busqueda['especialidad'].title()}")
+        st.caption(f"Buscando en: {', '.join([c.title() for c in busqueda['comunas']])} | Isapre: {busqueda['isapre'].title()} | Orden: {busqueda['criterio']}")
         st.markdown("---")
-        
+
         for i, res in enumerate(resultados):
             badge_class = "badge-success" if "Con convenio" in res['convenio'] else ("badge-warning" if "Sin convenio" in res['convenio'] else "badge-info")
-            badge_text = res['convenio']
-            
+
             st.markdown(f"""
             <div class="result-card">
                 <div class="card-title">{i+1}. {res['nombre']}</div>
                 <div class="card-info">📍 Desde <strong>{res['comuna_origen'].title()}</strong>: <strong>{res['distancia_km']:.1f} km</strong></div>
                 <div class="card-info">💰 Copago: <strong>{formatear_precio(res['copago'])}</strong></div>
                 <div class="card-info">🏥 Precio base: {formatear_precio(res['precio_base'])}</div>
-                <div style="margin: 0.75rem 0;"><span class="{badge_class}">{badge_text}</span></div>
+                <div style="margin: 0.75rem 0;"><span class="{badge_class}">{res['convenio']}</span></div>
             </div>
             """, unsafe_allow_html=True)
-            
+
             st.markdown('<div class="hours-list">', unsafe_allow_html=True)
             st.markdown("**📅 Horas disponibles:**")
             for opcion in res['opciones_hora']:
@@ -477,7 +483,7 @@ if buscar:
                 st.link_button("📅 Reservar en sitio externo", res['url_reserva'], use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
             st.markdown("---")
-        
+
         st.markdown("### 🗺️ Ubicación de los centros")
         map_data = []
         for res in resultados[:6]:
