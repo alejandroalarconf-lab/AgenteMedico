@@ -42,7 +42,7 @@ if "ultima_busqueda" not in st.session_state:
     st.session_state.ultima_busqueda = {}
 
 # ============================================================================
-# CSS TEMA OSCURO (fondo negro)
+# CSS TEMA OSCURO
 # ============================================================================
 
 st.markdown("""
@@ -53,17 +53,14 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
     }
     
-    /* Fondo negro principal */
     .stApp {
         background: #0a0a0a !important;
     }
     
-    /* Fondo de todos los contenedores principales */
     .main > div {
         background: #0a0a0a !important;
     }
     
-    /* Selectores y campos de entrada */
     .stSelectbox > div > div, .stMultiSelect > div > div {
         background: #1e1e1e !important;
         border: 1px solid #333 !important;
@@ -76,19 +73,10 @@ st.markdown("""
         font-weight: 500 !important;
     }
     
-    /* Texto de opciones seleccionadas */
     .stSelectbox div[data-baseweb="select"] span {
         color: white !important;
     }
     
-    /* Input de texto */
-    .stTextInput > div > div > input {
-        background: #1e1e1e !important;
-        color: white !important;
-        border: 1px solid #333 !important;
-    }
-    
-    /* Botón principal */
     .stButton > button {
         background: #0055aa !important;
         color: white !important;
@@ -102,7 +90,6 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0,85,170,0.3) !important;
     }
     
-    /* Botón de link */
     .stLinkButton > a {
         background: transparent !important;
         color: #4a9eff !important;
@@ -115,17 +102,14 @@ st.markdown("""
         background: rgba(74,158,255,0.1) !important;
     }
     
-    /* Títulos */
     h1, h2, h3, h4, h5 {
         color: #ffffff !important;
     }
     
-    /* Texto de caption y código */
     .stCaption, caption {
         color: #aaaaaa !important;
     }
     
-    /* Contenedores de resultados (tarjetas) */
     .stContainer {
         background: #1e1e1e !important;
         border-radius: 16px !important;
@@ -134,7 +118,6 @@ st.markdown("""
         border: 1px solid #333 !important;
     }
     
-    /* Métricas */
     .stMetric {
         background: #2a2a2a !important;
         border-radius: 12px !important;
@@ -148,41 +131,22 @@ st.markdown("""
         color: white !important;
     }
     
-    /* Success/Warning/Info */
     .stAlert {
-        background: #1e1e1e !important;
-        border-left: 4px solid !important;
-    }
-    .stAlert[data-baseweb="notification"] {
         background: #1e1e1e !important;
     }
     
-    /* Separador */
     hr {
         border-color: #333 !important;
     }
     
-    /* Mapa (Streamlit lo maneja, pero ajustamos fondo) */
     .stMap {
         border-radius: 12px;
         overflow: hidden;
         border: 1px solid #333;
     }
     
-    /* Spinner */
     .stSpinner > div {
         border-color: #0055aa transparent transparent transparent !important;
-    }
-    
-    /* Selector de opciones múltiples */
-    .stMultiSelect span {
-        color: white !important;
-    }
-    
-    /* Tooltips y elementos flotantes */
-    div[role="tooltip"] {
-        background: #1e1e1e !important;
-        color: white !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -192,53 +156,62 @@ st.markdown("""
 # ============================================================================
 
 st.title("🏥 Buscador de Horas Médicas - Chile")
-st.caption("🇨🇱 Región Metropolitana · Compara precios con tu Isapre o Fonasa")
+st.caption("🇨🇱 Región Metropolitana · 27 centros médicos · Compara precios con tu Isapre o Fonasa")
 st.markdown("---")
 
 # ============================================================================
-# DATOS DE CENTROS MÉDICOS (23 centros)
+# DATOS DE CENTROS MÉDICOS (27 centros - agregadas 4 nuevas clínicas)
 # ============================================================================
 
 CENTROS_MEDICOS = [
-    {"nombre": "Clínica Alemana", "comuna": "Vitacura", "coordenadas": (-33.3940, -70.5940), "url_reserva": "https://portal.clinicaalemana.cl/reserva-horas/identificacion", "precios": {"medicina general": 50000, "pediatría": 58000, "traumatología": 98000, "cardiología": 88000, "dermatología": 90000, "ginecología": 75000}},
-    {"nombre": "UC Christus", "comuna": "Santiago Centro", "coordenadas": (-33.4410, -70.6400), "url_reserva": "https://reserva.ucchristus.cl", "precios": {"medicina general": 45000, "pediatría": 52000, "traumatología": 88000, "cardiología": 78000, "dermatología": 80000, "ginecología": 68000, "laboratorio": 25000, "imagenes": 45000}},
-    {"nombre": "RedSalud Vitacura", "comuna": "Vitacura", "coordenadas": (-33.3900, -70.5800), "url_reserva": "https://www.redsalud.cl/reserva-de-horas", "precios": {"medicina general": 38000, "pediatría": 48000, "traumatología": 68000, "cardiología": 72000, "dermatología": 75000, "ginecología": 62000, "dental": 35000, "laboratorio": 20000}},
-    {"nombre": "RedSalud Providencia", "comuna": "Providencia", "coordenadas": (-33.4330, -70.6150), "url_reserva": "https://www.redsalud.cl/reserva-de-horas", "precios": {"medicina general": 38000, "pediatría": 48000, "traumatología": 68000, "cardiología": 72000, "dermatología": 75000, "ginecología": 62000}},
+    {"nombre": "Clínica Alemana", "comuna": "Vitacura", "coordenadas": (-33.3940, -70.5940), "url_reserva": "https://portal.clinicaalemana.cl/reserva-horas/identificacion", "precios": {"medicina general": 50000, "pediatría": 58000, "traumatología": 98000, "cardiología": 88000, "dermatología": 90000, "ginecología": 75000, "otorrino": 75000, "reumatología": 80000, "nefrología": 75000, "medicina interna": 70000}},
+    {"nombre": "UC Christus", "comuna": "Santiago Centro", "coordenadas": (-33.4410, -70.6400), "url_reserva": "https://reserva.ucchristus.cl", "precios": {"medicina general": 45000, "pediatría": 52000, "traumatología": 88000, "cardiología": 78000, "dermatología": 80000, "ginecología": 68000, "laboratorio": 25000, "imagenes": 45000, "otorrino": 70000, "medicina interna": 65000, "geriatría": 65000}},
+    {"nombre": "RedSalud Vitacura", "comuna": "Vitacura", "coordenadas": (-33.3900, -70.5800), "url_reserva": "https://www.redsalud.cl/reserva-de-horas", "precios": {"medicina general": 38000, "pediatría": 48000, "traumatología": 68000, "cardiología": 72000, "dermatología": 75000, "ginecología": 62000, "dental": 35000, "laboratorio": 20000, "otorrino": 60000, "medicina interna": 55000}},
+    {"nombre": "RedSalud Providencia", "comuna": "Providencia", "coordenadas": (-33.4330, -70.6150), "url_reserva": "https://www.redsalud.cl/reserva-de-horas", "precios": {"medicina general": 38000, "pediatría": 48000, "traumatología": 68000, "cardiología": 72000, "dermatología": 75000, "ginecología": 62000, "otorrino": 60000}},
     {"nombre": "RedSalud La Florida", "comuna": "La Florida", "coordenadas": (-33.5350, -70.5900), "url_reserva": "https://www.redsalud.cl/reserva-de-horas", "precios": {"medicina general": 37000, "pediatría": 47000, "traumatología": 67000, "cardiología": 71000, "dermatología": 74000, "ginecología": 61000}},
-    {"nombre": "IntegraMédica Alameda", "comuna": "Santiago Centro", "coordenadas": (-33.4520, -70.6480), "url_reserva": "https://agendamiento.integramedica.cl", "precios": {"medicina general": 35000, "pediatría": 45000, "traumatología": 60000, "cardiología": 65000, "dermatología": 70000, "ginecología": 55000, "dental": 30000, "oftalmología": 50000}},
-    {"nombre": "IntegraMédica Ñuñoa", "comuna": "Ñuñoa", "coordenadas": (-33.4570, -70.6000), "url_reserva": "https://agendamiento.integramedica.cl", "precios": {"medicina general": 35000, "pediatría": 45000, "traumatología": 60000, "cardiología": 65000, "dermatología": 70000, "ginecología": 55000}},
+    {"nombre": "IntegraMédica Alameda", "comuna": "Santiago Centro", "coordenadas": (-33.4520, -70.6480), "url_reserva": "https://agendamiento.integramedica.cl", "precios": {"medicina general": 35000, "pediatría": 45000, "traumatología": 60000, "cardiología": 65000, "dermatología": 70000, "ginecología": 55000, "dental": 30000, "oftalmología": 50000, "otorrino": 55000, "medicina interna": 50000}},
+    {"nombre": "IntegraMédica Ñuñoa", "comuna": "Ñuñoa", "coordenadas": (-33.4570, -70.6000), "url_reserva": "https://agendamiento.integramedica.cl", "precios": {"medicina general": 35000, "pediatría": 45000, "traumatología": 60000, "cardiología": 65000, "dermatología": 70000, "ginecología": 55000, "otorrino": 55000}},
     {"nombre": "IntegraMédica Providencia", "comuna": "Providencia", "coordenadas": (-33.4370, -70.6450), "url_reserva": "https://agendamiento.integramedica.cl", "precios": {"medicina general": 35000, "pediatría": 45000, "traumatología": 60000, "cardiología": 65000, "dermatología": 70000, "ginecología": 55000}},
     {"nombre": "IntegraMédica Las Condes", "comuna": "Las Condes", "coordenadas": (-33.4000, -70.5650), "url_reserva": "https://agendamiento.integramedica.cl", "precios": {"medicina general": 36000, "pediatría": 46000, "traumatología": 61000, "cardiología": 66000, "dermatología": 71000, "ginecología": 56000}},
     {"nombre": "IntegraMédica Maipú", "comuna": "Maipú", "coordenadas": (-33.5100, -70.7550), "url_reserva": "https://agendamiento.integramedica.cl", "precios": {"medicina general": 34000, "pediatría": 44000, "traumatología": 59000, "cardiología": 64000, "dermatología": 69000, "ginecología": 54000}},
     {"nombre": "IntegraMédica La Florida", "comuna": "La Florida", "coordenadas": (-33.5350, -70.5900), "url_reserva": "https://agendamiento.integramedica.cl", "precios": {"medicina general": 34000, "pediatría": 44000, "traumatología": 59000, "cardiología": 64000, "dermatología": 69000, "ginecología": 54000}},
-    {"nombre": "Clínica INDISA", "comuna": "Providencia", "coordenadas": (-33.4250, -70.6200), "url_reserva": "https://reserva.indisa.cl/WebReservaHoras", "precios": {"medicina general": 42000, "pediatría": 52000, "traumatología": 72000, "cardiología": 75000, "dermatología": 80000, "ginecología": 65000, "maternidad": 120000, "examenes": 30000}},
-    {"nombre": "Clínica Las Condes", "comuna": "Las Condes", "coordenadas": (-33.4100, -70.5720), "url_reserva": "https://mivision.clinicalascondes.cl/ReservaHoras", "precios": {"medicina general": 48000, "pediatría": 55000, "traumatología": 95000, "cardiología": 85000, "dermatología": 88000, "ginecología": 72000}},
-    {"nombre": "Clínica Bupa Santiago", "comuna": "La Florida", "coordenadas": (-33.5330, -70.5950), "url_reserva": "https://agendamiento.clinicabupasantiago.cl", "precios": {"medicina general": 45000, "pediatría": 55000, "traumatología": 70000, "cardiología": 75000, "dermatología": 85000, "ginecología": 65000, "cirugia": 100000, "maternidad": 90000}},
-    {"nombre": "Clínica U. de los Andes", "comuna": "Las Condes", "coordenadas": (-33.3850, -70.5450), "url_reserva": "https://reserva.clinicauandes.cl", "precios": {"medicina general": 50000, "pediatría": 60000, "traumatología": 90000, "cardiología": 85000, "dermatología": 88000, "ginecología": 72000}},
+    {"nombre": "Clínica INDISA", "comuna": "Providencia", "coordenadas": (-33.4250, -70.6200), "url_reserva": "https://reserva.indisa.cl/WebReservaHoras", "precios": {"medicina general": 42000, "pediatría": 52000, "traumatología": 72000, "cardiología": 75000, "dermatología": 80000, "ginecología": 65000, "maternidad": 120000, "examenes": 30000, "otorrino": 68000, "medicina interna": 62000}},
+    {"nombre": "Clínica Las Condes", "comuna": "Las Condes", "coordenadas": (-33.4100, -70.5720), "url_reserva": "https://mivision.clinicalascondes.cl/ReservaHoras", "precios": {"medicina general": 48000, "pediatría": 55000, "traumatología": 95000, "cardiología": 85000, "dermatología": 88000, "ginecología": 72000, "otorrino": 78000, "medicina interna": 72000, "cirugia": 110000}},
+    {"nombre": "Clínica Bupa Santiago", "comuna": "La Florida", "coordenadas": (-33.5330, -70.5950), "url_reserva": "https://agendamiento.clinicabupasantiago.cl", "precios": {"medicina general": 45000, "pediatría": 55000, "traumatología": 70000, "cardiología": 75000, "dermatología": 85000, "ginecología": 65000, "cirugia": 100000, "maternidad": 90000, "otorrino": 70000}},
+    {"nombre": "Clínica U. de los Andes", "comuna": "Las Condes", "coordenadas": (-33.3850, -70.5450), "url_reserva": "https://reserva.clinicauandes.cl", "precios": {"medicina general": 50000, "pediatría": 60000, "traumatología": 90000, "cardiología": 85000, "dermatología": 88000, "ginecología": 72000, "cirugia": 120000}},
     {"nombre": "Hospital del Profesor", "comuna": "Estación Central", "coordenadas": (-33.4700, -70.7000), "url_reserva": "https://reserva.chp.cl", "precios": {"medicina general": 40000, "pediatría": 50000, "traumatología": 70000, "cardiología": 72000, "dermatología": 75000, "ginecología": 62000, "kinesiología": 30000, "imagenes": 40000}},
     {"nombre": "Clini - Providencia", "comuna": "Providencia", "coordenadas": (-33.4350, -70.6350), "url_reserva": "https://reserva.clini.cl", "precios": {"medicina general": 35000, "cardiología": 65000, "laboratorio": 20000, "imagenes": 35000, "examenes": 25000}},
     {"nombre": "Clini - La Florida", "comuna": "La Florida", "coordenadas": (-33.5300, -70.5850), "url_reserva": "https://reserva.clini.cl", "precios": {"medicina general": 35000, "cardiología": 65000, "laboratorio": 20000, "imagenes": 35000, "examenes": 25000}},
-    {"nombre": "Clínica Santa María", "comuna": "Providencia", "coordenadas": (-33.4260, -70.6230), "url_reserva": "https://www.clinicasantamaria.cl/reserva-online", "precios": {"medicina general": 50000, "pediatría": 55000, "traumatología": 80000, "cardiología": 85000, "dermatología": 90000, "ginecología": 75000}},
-    {"nombre": "Clínica Dávila Recoleta", "comuna": "Recoleta", "coordenadas": (-33.4150, -70.6400), "url_reserva": "https://www.davila.cl/reserva-online", "precios": {"medicina general": 40000, "pediatría": 50000, "traumatología": 68000, "cardiología": 72000, "dermatología": 75000, "ginecología": 62000}},
+    {"nombre": "Clínica Santa María", "comuna": "Providencia", "coordenadas": (-33.4260, -70.6230), "url_reserva": "https://www.clinicasantamaria.cl/reserva-online", "precios": {"medicina general": 50000, "pediatría": 55000, "traumatología": 80000, "cardiología": 85000, "dermatología": 90000, "ginecología": 75000, "otorrino": 75000}},
+    {"nombre": "Clínica Dávila Recoleta", "comuna": "Recoleta", "coordenadas": (-33.4150, -70.6400), "url_reserva": "https://www.davila.cl/reserva-online", "precios": {"medicina general": 40000, "pediatría": 50000, "traumatología": 68000, "cardiología": 72000, "dermatología": 75000, "ginecología": 62000, "otorrino": 65000}},
     {"nombre": "Clínica MEDS", "comuna": "Las Condes", "coordenadas": (-33.3850, -70.5450), "url_reserva": "https://www.meds.cl/reserva-hora", "precios": {"medicina general": 50000, "pediatría": 60000, "traumatología": 75000, "cardiología": 80000, "dermatología": 85000, "ginecología": 70000}},
+    # ========================================================================
+    # NUEVAS CLÍNICAS AGREGADAS (OPCIÓN 3)
+    # ========================================================================
+    {"nombre": "Clínica Bicentenario Puente Alto", "comuna": "Puente Alto", "coordenadas": (-33.6200, -70.5750), "url_reserva": "https://www.clinicalabicentenario.cl/reservas", "precios": {"medicina general": 35000, "pediatría": 45000, "traumatología": 65000, "ginecología": 58000, "kinesiología": 28000, "nutrición": 35000}},
+    {"nombre": "Clínica Bicentenario Las Condes", "comuna": "Las Condes", "coordenadas": (-33.4000, -70.5650), "url_reserva": "https://www.clinicalabicentenario.cl/reservas", "precios": {"medicina general": 38000, "pediatría": 48000, "traumatología": 68000, "ginecología": 60000, "kinesiología": 30000}},
+    {"nombre": "Clínica Ciudad del Sol", "comuna": "La Florida", "coordenadas": (-33.5300, -70.5800), "url_reserva": "https://www.ciudaddelsol.cl/reservas", "precios": {"medicina general": 32000, "kinesiología": 25000, "nutrición": 30000, "dermatología": 65000, "ginecología": 52000}},
+    {"nombre": "Clínica Tabancura", "comuna": "Las Condes", "coordenadas": (-33.3850, -70.5450), "url_reserva": "https://www.clinicatabancura.cl/reserva-hora", "precios": {"medicina general": 42000, "traumatología": 72000, "oftalmología": 60000, "cardiología": 70000, "dermatología": 75000}},
+    {"nombre": "Clínica Avansalud Providencia", "comuna": "Providencia", "coordenadas": (-33.4350, -70.6350), "url_reserva": "https://www.avansalud.cl/reservas", "precios": {"medicina general": 30000, "pediatría": 40000, "ginecología": 50000, "nutrición": 28000, "kinesiología": 25000}},
+    {"nombre": "Clínica Avansalud Las Condes", "comuna": "Las Condes", "coordenadas": (-33.4100, -70.5700), "url_reserva": "https://www.avansalud.cl/reservas", "precios": {"medicina general": 32000, "pediatría": 42000, "ginecología": 52000, "nutrición": 30000}},
 ]
 
 # ============================================================================
-# CONVENIOS POR ISAPRE
+# CONVENIOS POR ISAPRE (actualizado con nuevas clínicas)
 # ============================================================================
 
 CONVENIOS = {
-    "banmédica": ["Clínica Alemana", "Clínica Las Condes", "Clínica Bupa Santiago", "Clínica Santa María", "Clínica INDISA", "Clínica Dávila Recoleta", "Clínica MEDS", "Clínica U. de los Andes"],
-    "consalud": ["RedSalud Vitacura", "RedSalud Providencia", "RedSalud La Florida", "IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "IntegraMédica Las Condes", "IntegraMédica Maipú", "IntegraMédica La Florida", "Clínica Dávila Recoleta"],
-    "colmena": ["UC Christus", "IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "Clínica INDISA"],
-    "vida tres": ["Clínica Bupa Santiago", "Clínica Santa María", "Clínica Alemana", "Clínica Las Condes"],
-    "nueva masvida": ["RedSalud Vitacura", "RedSalud Providencia", "RedSalud La Florida", "IntegraMédica Alameda", "Clínica INDISA"],
-    "esencial": ["IntegraMédica Alameda", "IntegraMédica Ñuñoa", "RedSalud Providencia"],
+    "banmédica": ["Clínica Alemana", "Clínica Las Condes", "Clínica Bupa Santiago", "Clínica Santa María", "Clínica INDISA", "Clínica Dávila Recoleta", "Clínica MEDS", "Clínica U. de los Andes", "Clínica Tabancura"],
+    "consalud": ["RedSalud Vitacura", "RedSalud Providencia", "RedSalud La Florida", "IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "IntegraMédica Las Condes", "IntegraMédica Maipú", "IntegraMédica La Florida", "Clínica Dávila Recoleta", "Clínica Avansalud Providencia", "Clínica Avansalud Las Condes"],
+    "colmena": ["UC Christus", "IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "Clínica INDISA", "Clínica Bicentenario Puente Alto", "Clínica Bicentenario Las Condes"],
+    "vida tres": ["Clínica Bupa Santiago", "Clínica Santa María", "Clínica Alemana", "Clínica Las Condes", "Clínica Tabancura"],
+    "nueva masvida": ["RedSalud Vitacura", "RedSalud Providencia", "RedSalud La Florida", "IntegraMédica Alameda", "Clínica INDISA", "Clínica Ciudad del Sol"],
+    "esencial": ["IntegraMédica Alameda", "IntegraMédica Ñuñoa", "RedSalud Providencia", "Clínica Avansalud Providencia"],
     "fonasa": [],
 }
 
 # ============================================================================
-# COMUNAS
+# COMUNAS (actualizado con Puente Alto)
 # ============================================================================
 
 TODAS_COMUNAS = {
@@ -251,6 +224,7 @@ TODAS_COMUNAS = {
     "maipú": (-33.510, -70.755),
     "ñuñoa": (-33.457, -70.600),
     "estacion central": (-33.470, -70.700),
+    "puente alto": (-33.620, -70.575),
 }
 
 # ============================================================================
@@ -274,6 +248,14 @@ DIAS_ESPERA = {
     "imagenes": (2, 5),
     "dental": (2, 7),
     "examenes": (1, 4),
+    "otorrino": (5, 20),
+    "reumatología": (10, 30),
+    "nefrología": (7, 21),
+    "hematología": (10, 25),
+    "infectología": (5, 20),
+    "geriatría": (7, 21),
+    "cirugia": (10, 35),
+    "medicina interna": (3, 14),
 }
 
 # ============================================================================
@@ -297,6 +279,14 @@ MEDICOS_POR_ESPECIALIDAD = {
     "imagenes": ["Tec. Rodrigo Acuña", "Dra. Carla Espinoza", "Tec. Paulo Díaz"],
     "dental": ["Dra. Carolina Ortiz", "Dr. Sebastián Lara", "Dra. María Jesús Valdés"],
     "examenes": ["Tec. Pamela Rojas", "Tec. Cristóbal Fuentes", "Dra. Valentina Pérez"],
+    "otorrino": ["Dr. Juan Pablo Hidalgo", "Dra. Paulina Aldunate", "Dr. Cristián Papuzinski"],
+    "reumatología": ["Dr. Óscar Soto", "Dra. Marcela Cárcamo", "Dr. Rodrigo Necochea"],
+    "nefrología": ["Dr. Juan Carlos Flores", "Dra. Paulina Zamorano", "Dr. Gonzalo Ibaceta"],
+    "hematología": ["Dra. Verónica Mena", "Dr. Alejandro Jara", "Dra. Bernardita Garrido"],
+    "infectología": ["Dr. Rodrigo Blamey", "Dra. Jeannette Dabanch", "Dr. Carlos Pérez"],
+    "geriatría": ["Dra. Lydia Lera", "Dr. Pedro Paulo Marín", "Dra. Cecilia Albala"],
+    "cirugia": ["Dr. Ricardo Rossi", "Dra. Carolina Morales", "Dr. Patricio Rodríguez"],
+    "medicina interna": ["Dr. Juan Carlos Rojas", "Dra. Paola Varela", "Dr. Rodrigo Muñoz"],
 }
 
 # ============================================================================
@@ -442,7 +432,7 @@ if not comunas_seleccionadas:
 
 if buscar:
     st.session_state.busqueda_activa = True
-    with st.spinner("Buscando las mejores horas disponibles..."):
+    with st.spinner("Buscando las mejores horas disponibles en 27 centros médicos..."):
         st.session_state.resultados = buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio)
         st.session_state.ultima_busqueda = {
             "especialidad": especialidad,
@@ -463,19 +453,16 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
     if not resultados:
         st.warning("No encontramos clínicas con esta especialidad en las comunas seleccionadas.")
     else:
-        # Hook banner
         ahorro_max = max((r["ahorro"] for r in resultados), default=0)
         if ahorro_max > 0:
             st.success(f"💡 Con tu previsión **{busqueda['isapre'].title()}** puedes ahorrar hasta **{formatear_precio(ahorro_max)}** en {busqueda['especialidad']}. Te mostramos las mejores opciones ordenadas para ti.")
         elif es_fonasa:
             st.info(f"ℹ️ Mostrando precios particulares para **Fonasa**. Los precios pueden variar según el prestador.")
 
-        # Header
         st.markdown(f"### 📋 {busqueda['especialidad'].title()}")
-        st.caption(f"{', '.join([c.title() for c in busqueda['comunas']])} · {busqueda['isapre'].title()} · {busqueda['criterio']}")
+        st.caption(f"{', '.join([c.title() for c in busqueda['comunas']])} · {busqueda['isapre'].title()} · {busqueda['criterio']} · 27 centros médicos disponibles")
         st.markdown("---")
 
-        # Tarjetas de resultados
         for i, res in enumerate(resultados):
             es_mejor = (i == 0)
             dias_label, _ = dias_espera_label(res["dias_espera"])
@@ -484,7 +471,6 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
                 if es_mejor:
                     st.markdown("⭐ **Mejor opción para ti**")
 
-                # Título y precio
                 col1, col2 = st.columns([3, 1])
                 with col1:
                     st.markdown(f"#### {res['nombre']}")
@@ -502,7 +488,6 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
                         st.markdown(f"### {formatear_precio(res['copago'])}")
                         st.caption("precio sin convenio")
 
-                # Métricas
                 col_a, col_b, col_c = st.columns(3)
                 with col_a:
                     st.metric(label="Primera hora", value=dias_label)
@@ -514,7 +499,6 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
                     else:
                         st.metric(label="Ahorras", value="—")
 
-                # Badge de convenio
                 if res["convenio"] == "convenio":
                     st.success(f"✅ Con convenio {busqueda['isapre'].title()}")
                 elif res["convenio"] == "fonasa":
@@ -522,7 +506,6 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
                 else:
                     st.warning(f"❌ Sin convenio {busqueda['isapre'].title()}")
 
-                # Horas disponibles
                 st.markdown("**📅 Horas disponibles**")
                 if res["opciones_hora"]:
                     for o in res["opciones_hora"][:3]:
@@ -531,13 +514,11 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
                 else:
                     st.info("Sin horas próximas disponibles")
 
-                # Botón de reserva
                 if res["url_reserva"] != "#":
                     st.link_button(f"📅 Reservar en {res['nombre']}", res["url_reserva"], use_container_width=True)
 
             st.markdown("---")
 
-        # Mapa
         if resultados:
             st.markdown("### 🗺️ Ubicación de los centros encontrados")
             map_data = []
@@ -557,4 +538,4 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
 # ============================================================================
 
 st.markdown("---")
-st.caption("🏥 Buscador de horas médicas · Región Metropolitana, Chile · Los precios y horarios son referenciales. La reserva se realiza en el sitio oficial de cada clínica.")
+st.caption("🏥 Buscador de horas médicas · 27 centros médicos · 24 especialidades · Región Metropolitana, Chile")
