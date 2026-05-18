@@ -42,7 +42,7 @@ if "ultima_busqueda" not in st.session_state:
     st.session_state.ultima_busqueda = {}
 
 # ============================================================================
-# CSS LIGERO (solo para colores y fuentes, sin HTML complejo)
+# CSS TEMA OSCURO (fondo negro)
 # ============================================================================
 
 st.markdown("""
@@ -53,14 +53,44 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
     }
     
-    /* Fondo suave */
+    /* Fondo negro principal */
     .stApp {
-        background: #f5f7fa;
+        background: #0a0a0a !important;
+    }
+    
+    /* Fondo de todos los contenedores principales */
+    .main > div {
+        background: #0a0a0a !important;
+    }
+    
+    /* Selectores y campos de entrada */
+    .stSelectbox > div > div, .stMultiSelect > div > div {
+        background: #1e1e1e !important;
+        border: 1px solid #333 !important;
+        color: white !important;
+        border-radius: 8px !important;
+    }
+    
+    .stSelectbox label, .stMultiSelect label {
+        color: #cccccc !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Texto de opciones seleccionadas */
+    .stSelectbox div[data-baseweb="select"] span {
+        color: white !important;
+    }
+    
+    /* Input de texto */
+    .stTextInput > div > div > input {
+        background: #1e1e1e !important;
+        color: white !important;
+        border: 1px solid #333 !important;
     }
     
     /* Botón principal */
     .stButton > button {
-        background: #003366 !important;
+        background: #0055aa !important;
         color: white !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
@@ -68,56 +98,97 @@ st.markdown("""
         transition: all 0.2s ease !important;
     }
     .stButton > button:hover {
-        background: #002244 !important;
-        box-shadow: 0 4px 12px rgba(0,51,102,0.25) !important;
+        background: #003366 !important;
+        box-shadow: 0 4px 12px rgba(0,85,170,0.3) !important;
+    }
+    
+    /* Botón de link */
+    .stLinkButton > a {
+        background: transparent !important;
+        color: #4a9eff !important;
+        font-weight: 500 !important;
+        border: 1px solid #4a9eff !important;
+        border-radius: 8px !important;
+        text-align: center !important;
+    }
+    .stLinkButton > a:hover {
+        background: rgba(74,158,255,0.1) !important;
     }
     
     /* Títulos */
     h1, h2, h3, h4, h5 {
-        color: #003366 !important;
+        color: #ffffff !important;
+    }
+    
+    /* Texto de caption y código */
+    .stCaption, caption {
+        color: #aaaaaa !important;
+    }
+    
+    /* Contenedores de resultados (tarjetas) */
+    .stContainer {
+        background: #1e1e1e !important;
+        border-radius: 16px !important;
+        padding: 4px !important;
+        margin-bottom: 12px !important;
+        border: 1px solid #333 !important;
     }
     
     /* Métricas */
     .stMetric {
-        background: white;
-        padding: 8px;
-        border-radius: 12px;
-        border: 1px solid #e0e7ed;
+        background: #2a2a2a !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
+        border: 1px solid #3a3a3a !important;
     }
     .stMetric label {
-        color: #6B8CAE !important;
+        color: #aaaaaa !important;
+    }
+    .stMetric .stMetric-value {
+        color: white !important;
     }
     
-    /* Contenedores de resultados */
-    .stContainer {
-        background: white;
-        border-radius: 16px;
-        padding: 10px;
-        margin-bottom: 10px;
-        transition: box-shadow 0.2s ease;
+    /* Success/Warning/Info */
+    .stAlert {
+        background: #1e1e1e !important;
+        border-left: 4px solid !important;
     }
-    .stContainer:hover {
-        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    .stAlert[data-baseweb="notification"] {
+        background: #1e1e1e !important;
     }
     
-    /* Badges y colores */
-    .success-text {
-        color: #1A6B3C;
-        font-weight: 500;
+    /* Separador */
+    hr {
+        border-color: #333 !important;
     }
-    .warning-text {
-        color: #854F0B;
-        font-weight: 500;
+    
+    /* Mapa (Streamlit lo maneja, pero ajustamos fondo) */
+    .stMap {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #333;
     }
-    .info-text {
-        color: #0C447C;
-        font-weight: 500;
+    
+    /* Spinner */
+    .stSpinner > div {
+        border-color: #0055aa transparent transparent transparent !important;
+    }
+    
+    /* Selector de opciones múltiples */
+    .stMultiSelect span {
+        color: white !important;
+    }
+    
+    /* Tooltips y elementos flotantes */
+    div[role="tooltip"] {
+        background: #1e1e1e !important;
+        color: white !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# ENCABEZADO (sin HTML complejo)
+# ENCABEZADO
 # ============================================================================
 
 st.title("🏥 Buscador de Horas Médicas - Chile")
@@ -381,7 +452,7 @@ if buscar:
         }
 
 # ============================================================================
-# UI - RESULTADOS (VERSIÓN CON COMPONENTES NATIVOS)
+# UI - RESULTADOS
 # ============================================================================
 
 if st.session_state.busqueda_activa and st.session_state.resultados is not None:
