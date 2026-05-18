@@ -25,7 +25,7 @@ DIAS_ESPERA_POR_DEFECTO = (7, 21)
 PORCENTAJE_CONVENIO = 0.25
 PORCENTAJE_SIN_CONVENIO = 0.70
 FACTOR_DISTANCIA = 0.4
-FACTOR_COPAGO = 0.0001  # Dividir por 10000
+FACTOR_COPAGO = 0.0001
 FACTOR_ESPERA = 0.2
 
 # ============================================================================
@@ -42,274 +42,87 @@ if "ultima_busqueda" not in st.session_state:
     st.session_state.ultima_busqueda = {}
 
 # ============================================================================
-# CSS MEJORADO
+# CSS LIGERO (solo para colores y fuentes, sin HTML complejo)
 # ============================================================================
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css');
-
-*, *::before, *::after { box-sizing: border-box; }
-html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
-
-#MainMenu, footer, header { visibility: hidden; }
-.block-container { padding: 0 !important; max-width: 100% !important; }
-
-/* Hero band */
-.hero-band {
-    background: #003366;
-    padding: 28px 32px 22px;
-    margin: -4rem -2rem 0 -2rem;
-}
-.hero-eyebrow {
-    font-size: 11px;
-    color: #85B7EB;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-}
-.hero-h1 {
-    font-size: 26px;
-    font-weight: 600;
-    color: white;
-    margin-bottom: 4px;
-}
-.hero-sub {
-    font-size: 14px;
-    color: #B5D4F4;
-    margin-bottom: 0;
-}
-.accent-bar {
-    background: #D52B1E;
-    height: 4px;
-    margin: 0 -2rem;
-}
-
-/* Filtros */
-.filtros-wrap {
-    background: white;
-    padding: 20px 32px;
-    border-bottom: 1px solid #D8E4F0;
-    margin: 0 -2rem 2rem -2rem;
-}
-
-/* Hook banner */
-.hook-banner {
-    background: #E6F1FB;
-    border: 1px solid #85B7EB;
-    border-radius: 10px;
-    padding: 12px 16px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-}
-.hook-icon { font-size: 18px; color: #185FA5; flex-shrink: 0; margin-top: 1px; }
-.hook-text { font-size: 13px; color: #0C447C; line-height: 1.5; }
-.hook-text strong { color: #042C53; font-weight: 600; }
-
-/* Tarjetas */
-.result-card {
-    background: white;
-    border: 1px solid #D8E4F0;
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 14px;
-    transition: box-shadow .2s ease;
-}
-.result-card:hover {
-    box-shadow: 0 4px 16px rgba(0,51,102,0.1);
-}
-.result-card.best {
-    border-top: 3px solid #003366;
-}
-.best-label {
-    display: inline-block;
-    background: #003366;
-    color: white;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 3px 12px;
-    border-radius: 20px;
-    margin-bottom: 12px;
-}
-.card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 14px;
-}
-.card-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: #003366;
-    margin-bottom: 3px;
-}
-.card-comuna {
-    font-size: 12px;
-    color: #6B8CAE;
-}
-.price-block { text-align: right; }
-.price-tachado {
-    font-size: 12px;
-    color: #aaa;
-    text-decoration: line-through;
-    margin-bottom: 1px;
-}
-.price-main { font-size: 22px; font-weight: 600; color: #003366; }
-.price-main.fonasa { color: #D52B1E; }
-.price-label { font-size: 11px; color: #6B8CAE; }
-
-/* Métricas */
-.metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 14px;
-}
-.metric-box {
-    background: #F4F6F9;
-    border-radius: 8px;
-    padding: 9px 10px;
-    text-align: center;
-}
-.metric-val {
-    font-size: 15px;
-    font-weight: 600;
-    color: #003366;
-    margin-bottom: 2px;
-}
-.metric-val.verde { color: #1A6B3C; }
-.metric-val.ambar { color: #854F0B; }
-.metric-val.gris  { color: #aaa; }
-.metric-label { font-size: 11px; color: #6B8CAE; }
-
-/* Badges */
-.convenio-row { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.badge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 3px 11px;
-    border-radius: 20px;
-}
-.badge-blue   { background: #E6F1FB; color: #0C447C; }
-.badge-red    { background: #FCEBEB; color: #791F1F; }
-.badge-gray   { background: #F0F3F7; color: #5F7A96; }
-.savings-text { font-size: 12px; font-weight: 600; color: #1A6B3C; }
-
-/* Slots */
-.slots-label { font-size: 12px; color: #6B8CAE; margin-bottom: 7px; }
-.slots-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-.slot-pill {
-    font-size: 12px;
-    font-weight: 500;
-    padding: 5px 12px;
-    border-radius: 8px;
-    border: 1px solid #85B7EB;
-    color: #0C447C;
-    background: #E6F1FB;
-}
-.slot-pill.vacio {
-    border-color: #D8E4F0;
-    color: #aaa;
-    background: #F4F6F9;
-}
-
-/* Botones */
-.stButton > button {
-    background: #003366 !important;
-    color: white !important;
-    font-weight: 600 !important;
-    font-size: 14px !important;
-    padding: 10px 20px !important;
-    border-radius: 8px !important;
-    border: none !important;
-    width: 100% !important;
-    transition: background .2s ease !important;
-}
-.stButton > button:hover {
-    background: #002244 !important;
-    box-shadow: 0 4px 12px rgba(0,51,102,0.25) !important;
-}
-.stLinkButton > a {
-    background: transparent !important;
-    color: #003366 !important;
-    font-weight: 500 !important;
-    font-size: 13px !important;
-    border: 1px solid #85B7EB !important;
-    border-radius: 8px !important;
-    width: 100% !important;
-    display: block !important;
-    text-align: center !important;
-}
-
-/* Selectores */
-.stSelectbox label, .stMultiSelect label {
-    font-weight: 500 !important;
-    color: #003366 !important;
-    font-size: 13px !important;
-}
-.stSelectbox > div > div, .stMultiSelect > div > div {
-    border-radius: 8px !important;
-    border: 1px solid #D8E4F0 !important;
-}
-
-/* Resultados header */
-.resultados-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #D8E4F0;
-}
-.resultados-titulo {
-    font-size: 16px;
-    font-weight: 600;
-    color: #003366;
-}
-.resultados-sub { font-size: 12px; color: #6B8CAE; margin-top: 2px; }
-.resultados-count {
-    background: #E6F1FB;
-    color: #0C447C;
-    font-size: 12px;
-    font-weight: 500;
-    padding: 4px 12px;
-    border-radius: 20px;
-}
-
-/* Mapa */
-.mapa-titulo {
-    font-size: 14px;
-    font-weight: 600;
-    color: #003366;
-    margin: 24px 0 10px;
-    padding-top: 16px;
-    border-top: 1px solid #D8E4F0;
-}
-
-/* Footer */
-.footer-wrap {
-    text-align: center;
-    padding: 20px;
-    color: #6B8CAE;
-    font-size: 12px;
-    border-top: 1px solid #D8E4F0;
-    margin-top: 32px;
-    background: white;
-    margin: 32px -2rem -2rem -2rem;
-}
-.footer-logo {
-    font-size: 13px;
-    font-weight: 600;
-    color: #003366;
-    margin-bottom: 4px;
-}
-.stWarning, .stInfo { border-radius: 8px !important; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Fondo suave */
+    .stApp {
+        background: #f5f7fa;
+    }
+    
+    /* Botón principal */
+    .stButton > button {
+        background: #003366 !important;
+        color: white !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        border: none !important;
+        transition: all 0.2s ease !important;
+    }
+    .stButton > button:hover {
+        background: #002244 !important;
+        box-shadow: 0 4px 12px rgba(0,51,102,0.25) !important;
+    }
+    
+    /* Títulos */
+    h1, h2, h3, h4, h5 {
+        color: #003366 !important;
+    }
+    
+    /* Métricas */
+    .stMetric {
+        background: white;
+        padding: 8px;
+        border-radius: 12px;
+        border: 1px solid #e0e7ed;
+    }
+    .stMetric label {
+        color: #6B8CAE !important;
+    }
+    
+    /* Contenedores de resultados */
+    .stContainer {
+        background: white;
+        border-radius: 16px;
+        padding: 10px;
+        margin-bottom: 10px;
+        transition: box-shadow 0.2s ease;
+    }
+    .stContainer:hover {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    
+    /* Badges y colores */
+    .success-text {
+        color: #1A6B3C;
+        font-weight: 500;
+    }
+    .warning-text {
+        color: #854F0B;
+        font-weight: 500;
+    }
+    .info-text {
+        color: #0C447C;
+        font-weight: 500;
+    }
 </style>
 """, unsafe_allow_html=True)
+
+# ============================================================================
+# ENCABEZADO (sin HTML complejo)
+# ============================================================================
+
+st.title("🏥 Buscador de Horas Médicas - Chile")
+st.caption("🇨🇱 Región Metropolitana · Compara precios con tu Isapre o Fonasa")
+st.markdown("---")
 
 # ============================================================================
 # DATOS DE CENTROS MÉDICOS (23 centros)
@@ -420,20 +233,16 @@ MEDICOS_POR_ESPECIALIDAD = {
 # ============================================================================
 
 def formatear_precio(valor: int) -> str:
-    """Formatea un número como precio chileno (ej: 45000 -> $45.000)"""
     return f"${valor:,.0f}".replace(",", ".")
 
 def generar_horas_disponibles(dias_espera: int, especialidad: str) -> list:
-    """Genera entre 1 y 3 opciones de hora y médico para una clínica"""
-    horarios = ["08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-                "12:00", "12:30", "14:00", "14:30", "15:00", "15:30",
-                "16:00", "16:30", "17:00", "17:30", "18:00", "18:30"]
-    
+    horarios = ["08:30","09:00","09:30","10:00","10:30","11:00","11:30",
+                "12:00","12:30","14:00","14:30","15:00","15:30",
+                "16:00","16:30","17:00","17:30","18:00","18:30"]
     fecha_base = datetime.now() + timedelta(days=dias_espera)
     medicos = MEDICOS_POR_ESPECIALIDAD.get(especialidad, ["Dr. Médico General"])
     num_opciones = random.randint(1, 3)
     opciones = []
-    
     for _ in range(num_opciones):
         dias_offset = random.randint(0, 2)
         fecha_opcion = fecha_base + timedelta(days=dias_offset)
@@ -442,12 +251,10 @@ def generar_horas_disponibles(dias_espera: int, especialidad: str) -> list:
             "hora": random.choice(horarios),
             "medico": random.choice(medicos),
         })
-    
     opciones.sort(key=lambda x: (x["fecha"], x["hora"]))
     return opciones
 
 def dias_espera_label(dias: int) -> tuple:
-    """Convierte días de espera en texto legible y clase CSS"""
     if dias <= 1:
         return "Mañana", "verde"
     elif dias <= 5:
@@ -458,24 +265,19 @@ def dias_espera_label(dias: int) -> tuple:
         return f"{dias} días", "gris"
 
 def buscar_horas(especialidad: str, comunas_seleccionadas: list, isapre: str, criterio: str) -> list:
-    """Busca horas médicas considerando múltiples comunas de origen"""
     clinicas_isapre = CONVENIOS.get(isapre, [])
     es_fonasa = (isapre == "fonasa")
     mejores_por_clinica = {}
 
     for centro in CENTROS_MEDICOS:
-        # Validar que la especialidad exista en esta clínica
         if especialidad not in centro["precios"]:
             continue
-        
         nombre = centro["nombre"]
         precio_base = centro["precios"][especialidad]
         tiene_convenio = nombre in clinicas_isapre
 
-        # Calcular distancia a la comuna más cercana
         distancia_minima = float('inf')
         comuna_mas_cercana = None
-        
         for comuna in comunas_seleccionadas:
             if comuna in TODAS_COMUNAS:
                 try:
@@ -485,11 +287,9 @@ def buscar_horas(especialidad: str, comunas_seleccionadas: list, isapre: str, cr
                         comuna_mas_cercana = comuna
                 except Exception:
                     continue
-        
         if distancia_minima == float('inf'):
             continue
 
-        # Calcular copago según previsión
         if es_fonasa:
             copago = precio_base
             etiqueta_convenio = "fonasa"
@@ -503,7 +303,6 @@ def buscar_horas(especialidad: str, comunas_seleccionadas: list, isapre: str, cr
             etiqueta_convenio = "sin_convenio"
             ahorro = 0
 
-        # Días de espera
         min_dias, max_dias = DIAS_ESPERA.get(especialidad, DIAS_ESPERA_POR_DEFECTO)
         if es_fonasa:
             dias_espera = random.randint(min_dias * 2, max_dias * 2)
@@ -526,39 +325,21 @@ def buscar_horas(especialidad: str, comunas_seleccionadas: list, isapre: str, cr
         }
 
     resultados = list(mejores_por_clinica.values())
-    
-    # Ordenar según criterio del usuario
     if criterio == "Más cercano primero":
         resultados.sort(key=lambda x: (round(x["distancia_km"], 1), x["copago"]))
     elif criterio == "Más barato primero":
         resultados.sort(key=lambda x: (x["copago"], round(x["distancia_km"], 1)))
-    else:  # Balanceado
+    else:
         resultados.sort(key=lambda x: (
             x["distancia_km"] * FACTOR_DISTANCIA + 
             x["copago"] * FACTOR_COPAGO + 
             x["dias_espera"] * FACTOR_ESPERA
         ))
-    
     return resultados[:MAX_RESULTADOS]
-
-# ============================================================================
-# UI - HERO BANNER
-# ============================================================================
-
-st.markdown("""
-<div class="hero-band">
-    <div class="hero-eyebrow">🇨🇱 Región Metropolitana · Chile</div>
-    <div class="hero-h1">🏥 Buscador de horas médicas</div>
-    <div class="hero-sub">Compara precios reales con tu isapre y reserva donde más te conviene</div>
-</div>
-<div class="accent-bar"></div>
-""", unsafe_allow_html=True)
 
 # ============================================================================
 # UI - FILTROS
 # ============================================================================
-
-st.markdown("<div class='filtros-wrap'>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -580,9 +361,6 @@ with col4:
     st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
     buscar = st.button("🔍 Buscar hora médica", use_container_width=True)
 
-st.markdown("</div>", unsafe_allow_html=True)
-
-# Validación de comunas
 if not comunas_seleccionadas:
     st.warning("⚠️ Selecciona al menos una comuna para buscar.")
     st.stop()
@@ -603,7 +381,7 @@ if buscar:
         }
 
 # ============================================================================
-# UI - RESULTADOS
+# UI - RESULTADOS (VERSIÓN CON COMPONENTES NATIVOS)
 # ============================================================================
 
 if st.session_state.busqueda_activa and st.session_state.resultados is not None:
@@ -614,150 +392,83 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
     if not resultados:
         st.warning("No encontramos clínicas con esta especialidad en las comunas seleccionadas.")
     else:
-        # Hook banner con ahorro máximo
+        # Hook banner
         ahorro_max = max((r["ahorro"] for r in resultados), default=0)
-
         if ahorro_max > 0:
-            st.markdown(f"""
-            <div class="hook-banner">
-                <span class="hook-icon">💡</span>
-                <div class="hook-text">
-                    Con tu previsión <strong>{busqueda['isapre'].title()}</strong> puedes ahorrar hasta
-                    <strong>{formatear_precio(ahorro_max)}</strong> en {busqueda['especialidad']}.
-                    Te mostramos las mejores opciones ordenadas para ti.
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.success(f"💡 Con tu previsión **{busqueda['isapre'].title()}** puedes ahorrar hasta **{formatear_precio(ahorro_max)}** en {busqueda['especialidad']}. Te mostramos las mejores opciones ordenadas para ti.")
         elif es_fonasa:
-            st.markdown(f"""
-            <div class="hook-banner">
-                <span class="hook-icon">ℹ️</span>
-                <div class="hook-text">
-                    Mostrando precios particulares para <strong>Fonasa</strong>.
-                    Los precios pueden variar según el prestador.
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.info(f"ℹ️ Mostrando precios particulares para **Fonasa**. Los precios pueden variar según el prestador.")
 
-        # Header de resultados
-        st.markdown(f"""
-        <div class="resultados-header">
-            <div>
-                <div class="resultados-titulo">{busqueda['especialidad'].title()}</div>
-                <div class="resultados-sub">
-                    {', '.join([c.title() for c in busqueda['comunas']])} ·
-                    {busqueda['isapre'].title()} · {busqueda['criterio']}
-                </div>
-            </div>
-            <div class="resultados-count">{len(resultados)} centros</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Header
+        st.markdown(f"### 📋 {busqueda['especialidad'].title()}")
+        st.caption(f"{', '.join([c.title() for c in busqueda['comunas']])} · {busqueda['isapre'].title()} · {busqueda['criterio']}")
+        st.markdown("---")
 
         # Tarjetas de resultados
         for i, res in enumerate(resultados):
             es_mejor = (i == 0)
-            card_class = "result-card best" if es_mejor else "result-card"
-            convenio = res["convenio"]
-            dias_label, dias_color = dias_espera_label(res["dias_espera"])
+            dias_label, _ = dias_espera_label(res["dias_espera"])
 
-            # Badge de convenio
-            if convenio == "convenio":
-                badge_html = f'<span class="badge badge-blue">✓ Con convenio {busqueda["isapre"].title()}</span>'
-                if res["ahorro"] > 0:
-                    badge_html += f'<span class="savings-text">· Ahorras {formatear_precio(res["ahorro"])}</span>'
-            elif convenio == "fonasa":
-                badge_html = '<span class="badge badge-red">Fonasa (precio particular)</span>'
-            else:
-                badge_html = f'<span class="badge badge-gray">Sin convenio {busqueda["isapre"].title()}</span>'
+            with st.container(border=True):
+                if es_mejor:
+                    st.markdown("⭐ **Mejor opción para ti**")
 
-            # Bloque de precio
-            if convenio == "convenio":
-                precio_html = f"""
-                    <div class="price-tachado">{formatear_precio(res['precio_base'])}</div>
-                    <div class="price-main">{formatear_precio(res['copago'])}</div>
-                    <div class="price-label">tu copago</div>
-                """
-            elif convenio == "fonasa":
-                precio_html = f"""
-                    <div class="price-main fonasa">{formatear_precio(res['copago'])}</div>
-                    <div class="price-label">precio Fonasa</div>
-                """
-            else:
-                precio_html = f"""
-                    <div class="price-tachado">{formatear_precio(res['precio_base'])}</div>
-                    <div class="price-main">{formatear_precio(res['copago'])}</div>
-                    <div class="price-label">precio sin convenio</div>
-                """
+                # Título y precio
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"#### {res['nombre']}")
+                    st.markdown(f"📍 {res['distancia_km']:.1f} km desde **{res['comuna_origen'].title()}**")
+                with col2:
+                    if res["convenio"] == "convenio":
+                        st.markdown(f"~~{formatear_precio(res['precio_base'])}~~")
+                        st.markdown(f"### {formatear_precio(res['copago'])}")
+                        st.caption("tu copago")
+                    elif res["convenio"] == "fonasa":
+                        st.markdown(f"### {formatear_precio(res['copago'])}")
+                        st.caption("precio Fonasa")
+                    else:
+                        st.markdown(f"~~{formatear_precio(res['precio_base'])}~~")
+                        st.markdown(f"### {formatear_precio(res['copago'])}")
+                        st.caption("precio sin convenio")
 
-            # Métrica de ahorro
-            if res["ahorro"] > 0:
-                ahorro_html = f'<div class="metric-val verde">{formatear_precio(res["ahorro"])}</div>'
-            else:
-                ahorro_html = '<div class="metric-val gris">—</div>'
+                # Métricas
+                col_a, col_b, col_c = st.columns(3)
+                with col_a:
+                    st.metric(label="Primera hora", value=dias_label)
+                with col_b:
+                    st.metric(label="Distancia", value=f"{res['distancia_km']:.1f} km")
+                with col_c:
+                    if res["ahorro"] > 0:
+                        st.metric(label="Ahorras", value=formatear_precio(res["ahorro"]))
+                    else:
+                        st.metric(label="Ahorras", value="—")
 
-            # Slots de horas
-            if res["opciones_hora"]:
-                slots_html = "".join([
-                    f'<span class="slot-pill">{o["hora"]}</span>'
-                    for o in res["opciones_hora"][:4]
-                ])
-                slots_label = f'Horas disponibles · {res["opciones_hora"][0]["fecha"]}'
-            else:
-                slots_html = '<span class="slot-pill vacio">Sin horas próximas</span>'
-                slots_label = "Disponibilidad"
+                # Badge de convenio
+                if res["convenio"] == "convenio":
+                    st.success(f"✅ Con convenio {busqueda['isapre'].title()}")
+                elif res["convenio"] == "fonasa":
+                    st.warning("🏥 Fonasa (precio particular)")
+                else:
+                    st.warning(f"❌ Sin convenio {busqueda['isapre'].title()}")
 
-            best_badge = '<div class="best-label">⭐ Mejor opción para ti</div>' if es_mejor else ""
+                # Horas disponibles
+                st.markdown("**📅 Horas disponibles**")
+                if res["opciones_hora"]:
+                    for o in res["opciones_hora"][:3]:
+                        st.markdown(f"- 🕐 **{o['fecha']}** a las **{o['hora']}** hrs. con {o['medico']}")
+                    st.caption(f"Primera hora disponible: {res['opciones_hora'][0]['fecha']} a las {res['opciones_hora'][0]['hora']} hrs.")
+                else:
+                    st.info("Sin horas próximas disponibles")
 
-            st.markdown(f"""
-            <div class="{card_class}">
-                {best_badge}
-                <div class="card-header">
-                    <div>
-                        <div class="card-name">{res['nombre']}</div>
-                        <div class="card-comuna">📍 {res['distancia_km']:.1f} km · {res['comuna_origen'].title()}</div>
-                    </div>
-                    <div class="price-block">{precio_html}</div>
-                </div>
+                # Botón de reserva
+                if res["url_reserva"] != "#":
+                    st.link_button(f"📅 Reservar en {res['nombre']}", res["url_reserva"], use_container_width=True)
 
-                <div class="metrics-grid">
-                    <div class="metric-box">
-                        <div class="metric-val {dias_color}">{dias_label}</div>
-                        <div class="metric-label">primera hora</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-val">{res['distancia_km']:.1f} km</div>
-                        <div class="metric-label">distancia</div>
-                    </div>
-                    <div class="metric-box">
-                        {ahorro_html}
-                        <div class="metric-label">ahorras</div>
-                    </div>
-                </div>
-
-                <div class="convenio-row">{badge_html}</div>
-
-                <div class="slots-label">{slots_label}</div>
-                <div class="slots-row">{slots_html}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Botón de reserva
-            if res["url_reserva"] != "#":
-                col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
-                with col_btn2:
-                    st.link_button(
-                        f"📅 Reservar en {res['nombre']}",
-                        res["url_reserva"],
-                        use_container_width=True,
-                    )
-
-            # Separador entre tarjetas
-            if i < len(resultados) - 1:
-                st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+            st.markdown("---")
 
         # Mapa
         if resultados:
-            st.markdown('<div class="mapa-titulo">🗺️ Ubicación de los centros encontrados</div>', unsafe_allow_html=True)
+            st.markdown("### 🗺️ Ubicación de los centros encontrados")
             map_data = []
             for res in resultados:
                 for centro in CENTROS_MEDICOS:
@@ -774,13 +485,5 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
 # FOOTER
 # ============================================================================
 
-st.markdown("""
-<div class="footer-wrap">
-    <div class="footer-logo">🏥 Buscador de Horas Médicas · Región Metropolitana</div>
-    Los precios y horarios son referenciales. La reserva se realiza en el sitio oficial de cada clínica.<br>
-    Desarrollado para facilitar el acceso a la salud en Chile.
-</div>
-""", unsafe_allow_html=True)
-
-# Limpiar caché al iniciar (evita errores en Streamlit Cloud)
-st.cache_data.clear()
+st.markdown("---")
+st.caption("🏥 Buscador de horas médicas · Región Metropolitana, Chile · Los precios y horarios son referenciales. La reserva se realiza en el sitio oficial de cada clínica.")
