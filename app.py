@@ -3,7 +3,6 @@ import random
 from geopy.distance import geodesic
 from datetime import datetime, timedelta
 import pandas as pd
-from streamlit_js_eval import get_geolocation
 
 # ============================================================================
 # CONFIGURACIÓN DE PÁGINA
@@ -438,8 +437,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 # ============================================================================
 # ============================================================================
-# GEOLOCALIZACIÓN — Detección automática (patrón correcto para streamlit-js-eval)
 # ============================================================================
+# GEOLOCALIZACIÓN — Componente HTML nativo (sin dependencias externas)
+# ============================================================================
+# Estrategia: st.components.v1.html renderiza un iframe con JS puro que llama
+# navigator.geolocation.getCurrentPosition() y guarda lat/lon en st.query_params
+# para que Streamlit los lea en el mismo ciclo via st.query_params.
+# ─────────────────────────────────────────────────────────────────────────────
+
+import streamlit.components.v1 as components
 
 st.markdown("""
 <style>
@@ -461,27 +467,109 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── PASO 1: Si get_geolocation está activo, procesarlo PRIMERO antes de renderizar UI ──
-# Esto evita el bug de doble-rerun: llamamos get_geolocation() al inicio del ciclo,
-# cuando geo_activa=True, y guardamos el resultado antes de continuar.
-if st.session_state.get("geo_activa", False) and not st.session_state.geo_comuna:
-    with st.spinner("📡 Detectando tu ubicación..."):
-        try:
-            loc = get_geolocation()
-            if loc and isinstance(loc, dict) and "coords" in loc:
-                lat = loc["coords"]["latitude"]
-                lon = loc["coords"]["longitude"]
-                # Encontrar comuna más cercana
-                mejor = None
-                mejor_dist = float("inf")
-                for nombre_c, coords_c in TODAS_COMUNAS.items():
-                    d = geodesic((lat, lon), coords_c).kilometers
-                    if d < mejor_dist:
-                        mejor_dist = d
-                        mejor = nombre_c
-                st.session_state.geo_comuna = mejor
-                st.session_state.geo_activa = False
-                st.session_state.geo_key = st.session_state.get("geo_key", 0) + 1
+# ── Leer coordenadas desde query_params si vienen del componente JS ──────────
+_params = st.query_params
+if "geo_lat" in _params and "geo_lon" in _params and not st.session_state.geo_comuna:
+    try:
+        _lat = float(_params["geo_lat"])
+        _lon = float(_params["geo_lon"])
+        _mejor = None
+        _mejor_dist = float("inf")
+        for _nc, _cc in TODAS_COMUNAS.items():
+            _d = geodesic((_lat, _lon), _cc).kilometers
+            if _d < _mejor_dist:
+                _mejor_dist = _d
+                _mejor = _nc
+        st.session_state.geo_comuna = _mejor
+        st.session_state.geo_key = st.session_state.get("geo_key", 0) + 1
+        # Limpiar params para no re-procesar
+        st.query_params.clear()
+        st.rerun()
+    except Exception:
+        pass
+
+# ── UI del bloque geo ────────────────────────────────────────────────────────
+geo_col1, geo_col2 = st.columns([4, 1])
+with geo_col1:
+    if st.session_state.geo_comuna:
+        st.markdown(
+            f'<div class="geo-detected">'
+            f'✅ Ubicación detectada — comuna: <strong>{st.session_state.geo_comuna.title()}</strong>'
+            f' · Campo completado automáticamente.</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            '<div class="geo-box"><span style="font-size:1.3rem">📡</span>'
+            '<div class="geo-box-text"><strong>Detecta tu ubicación</strong> para ver las'
+            ' clínicas más cercanas — o elige tu comuna manualmente abajo.</div></div>',
+            unsafe_allow_html=True
+        )
+with geo_col2:
+    if not st.session_state.geo_comuna:
+        _activar_geo = st.button("📡 Usar mi ubicación", use_container_width=True)
+    else:
+        if st.button("✕ Cambiar comuna", use_container_width=True):
+            st.session_state.geo_comuna = None
+            st.session_state.geo_activa = False
+            st.session_state.geo_key = st.session_state.get("geo_key", 0) + 1
+            st.query_params.clear()
+            st.rerun()
+    _activar_geo = False  # default seguro
+
+# ── Componente JS de geolocalización ─────────────────────────────────────────
+# Se inyecta SOLO cuando el usuario presiona el botón.
+# Usa navigator.geolocation nativo + redirige con lat/lon en query_params.
+if st.session_state.get("geo_activa", False):
+    _geo_html = """
+    <div id="geo-status" style="font-family:Inter,sans-serif;font-size:0.85rem;
+         color:#aabbdd;padding:10px 0;">
+      ⏳ Solicitando permiso de ubicación...
+    </div>
+    <script>
+    (function() {
+      var status = document.getElementById('geo-status');
+      if (!navigator.geolocation) {
+        status.innerHTML = '❌ Tu navegador no soporta geolocalización.';
+        return;
+      }
+      status.innerHTML = '📡 Detectando ubicación — por favor acepta el permiso...';
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          var lat = pos.coords.latitude.toFixed(6);
+          var lon = pos.coords.longitude.toFixed(6);
+          status.innerHTML = '✅ Ubicación obtenida, cargando...';
+          // Redirigir al parent con los params
+          var base = window.parent.location.href.split('?')[0];
+          window.parent.location.href = base + '?geo_lat=' + lat + '&geo_lon=' + lon;
+        },
+        function(err) {
+          var msg = {
+            1: '⚠️ Permiso denegado. Activa la ubicación en tu navegador.',
+            2: '⚠️ No se pudo detectar la ubicación.',
+            3: '⚠️ Tiempo de espera agotado.'
+          };
+          status.innerHTML = msg[err.code] || '⚠️ Error al obtener ubicación.';
+          // Notificar a Streamlit para limpiar el estado
+          setTimeout(function() {
+            window.parent.postMessage({type: 'geo_error'}, '*');
+          }, 2000);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    })();
+    </script>
+    """
+    components.html(_geo_html, height=60)
+
+if "_activar_geo" in dir() and _activar_geo:
+    st.session_state.geo_activa = True
+    st.rerun()
+
+# Default de comunas: vacío si no hay geo, o la detectada
+default_comunas = [st.session_state.geo_comuna] if st.session_state.geo_comuna else []
+geo_key = st.session_state.get("geo_key", 0)
+
                 st.rerun()
             else:
                 st.session_state.geo_activa = False
