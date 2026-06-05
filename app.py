@@ -42,7 +42,7 @@ if "busqueda_activa" not in st.session_state:
 if "ultima_busqueda" not in st.session_state:
     st.session_state.ultima_busqueda = {}
 if "geo_comuna" not in st.session_state:
-    st.session_state.geo_comuna = None
+    st.session_state.geo_comuna = None  # None = campo vacío al inicio
 if "geo_activa" not in st.session_state:
     st.session_state.geo_activa = False
 if "geo_key" not in st.session_state:
@@ -494,8 +494,8 @@ with geo_col1:
     if st.session_state.geo_comuna:
         st.markdown(
             f'<div class="geo-detected">'
-            f'📍 Detectamos que estás cerca de <strong>{st.session_state.geo_comuna.title()}</strong>'
-            f' — ya la usamos como tu punto de búsqueda. Puedes cambiarla abajo.</div>',
+            f'✅ Ubicación detectada — comuna: <strong>{st.session_state.geo_comuna.title()}</strong>'
+            f' · El campo de búsqueda ya fue completado automáticamente.</div>',
             unsafe_allow_html=True
         )
     else:
@@ -518,7 +518,7 @@ with geo_col2:
             st.rerun()
 
 # Default de comunas — usa key dinámico para forzar reset del widget cuando cambia geo
-default_comunas = [st.session_state.geo_comuna] if st.session_state.geo_comuna else ["providencia"]
+default_comunas = [st.session_state.geo_comuna] if st.session_state.geo_comuna else []
 geo_key = st.session_state.get("geo_key", 0)
 
 # ============================================================================
@@ -532,7 +532,7 @@ with col2:
     isapre = st.selectbox("🏦 Tu previsión de salud", list(CONVENIOS.keys()))
 
 comunas_seleccionadas = st.multiselect(
-    f"📍 ¿Desde qué comuna buscas? (máx. {MAX_COMUNAS})",
+    f"📍 ¿Desde qué comuna buscas? (máx. {MAX_COMUNAS})" + (" — detectada automáticamente ✓" if st.session_state.geo_comuna else " — o usa 📡 para detectar tu ubicación"),
     options=list(TODAS_COMUNAS.keys()),
     default=default_comunas,
     max_selections=MAX_COMUNAS,
@@ -540,7 +540,7 @@ comunas_seleccionadas = st.multiselect(
 )
 
 if not comunas_seleccionadas:
-    st.warning("Selecciona al menos una comuna para continuar.")
+    st.info("📍 Selecciona tu comuna arriba — o usa el botón **📡 Usar mi ubicación** para detectarla automáticamente.")
     st.stop()
 
 col3, col4 = st.columns([2, 1])
