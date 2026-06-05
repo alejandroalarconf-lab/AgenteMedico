@@ -3,6 +3,7 @@ import random
 from geopy.distance import geodesic
 from datetime import datetime, timedelta
 import pandas as pd
+from streamlit_js_eval import get_geolocation
 
 # ============================================================================
 # CONFIGURACIÓN DE PÁGINA
@@ -40,8 +41,10 @@ if "busqueda_activa" not in st.session_state:
     st.session_state.busqueda_activa = False
 if "ultima_busqueda" not in st.session_state:
     st.session_state.ultima_busqueda = {}
-
-# ============================================================================
+if "geo_comuna" not in st.session_state:
+    st.session_state.geo_comuna = None
+if "geo_solicitada" not in st.session_state:
+    st.session_state.geo_solicitada = False
 # CSS — SISTEMA DE DISEÑO COMPLETO
 # ============================================================================
 
@@ -186,7 +189,6 @@ hr { border-color: #1a2030 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ============================================================================
 # DATOS DE CENTROS MÉDICOS
 # ============================================================================
 
@@ -390,6 +392,22 @@ def buscar_horas(especialidad: str, comunas_seleccionadas: list, isapre: str, cr
     return resultados[:MAX_RESULTADOS]
 
 # ============================================================================
+# ============================================================================
+# FUNCIÓN DE GEOLOCALIZACIÓN
+# ============================================================================
+
+def comuna_mas_cercana(lat: float, lon: float) -> str:
+    """Dado un punto GPS retorna la comuna del diccionario más cercana."""
+    mejor = None
+    mejor_dist = float("inf")
+    for nombre, coords in TODAS_COMUNAS.items():
+        d = geodesic((lat, lon), coords).kilometers
+        if d < mejor_dist:
+            mejor_dist = d
+            mejor = nombre
+    return mejor
+
+# ============================================================================
 # UI - HERO HEADER
 # ============================================================================
 
@@ -406,7 +424,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Banner de valor PRE-búsqueda (framing de pérdida — Kahneman)
+# Banner de valor PRE-búsqueda
 st.markdown("""
 <div class="value-banner">
   <span style="font-size:1.4rem">💡</span>
@@ -416,7 +434,95 @@ st.markdown("""
   </div>
 </div>
 """, unsafe_allow_html=True)
+# ============================================================================
+# GEOLOCALIZACIÓN — Detección automática de comuna (Thaler opt-out default)
+# ============================================================================
 
+# CSS extra para el bloque geo
+st.markdown("""
+<style>
+.geo-box {
+    background: linear-gradient(90deg, rgba(0,100,200,0.12) 0%, rgba(0,100,200,0.04) 100%);
+    border: 1px solid rgba(0,120,220,0.3);
+    border-left: 4px solid #4a9eff;
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.geo-box-text { font-size: 0.9rem; color: #aabbdd; line-height: 1.5; }
+.geo-box-text strong { color: #4a9eff; }
+.geo-detected {
+    background: linear-gradient(90deg, rgba(0,194,124,0.12) 0%, rgba(0,194,124,0.04) 100%);
+    border: 1px solid rgba(0,194,124,0.35);
+    border-left: 4px solid #00c27c;
+    border-radius: 12px;
+    padding: 12px 18px;
+    margin-bottom: 16px;
+    font-size: 0.88rem;
+    color: #aaddcc;
+}
+.geo-detected strong { color: #00c27c; }
+</style>
+""", unsafe_allow_html=True)
+
+# ── Bloque de geolocalización ────────────────────────────────────────────────
+geo_col1, geo_col2 = st.columns([4, 1])
+with geo_col1:
+    if st.session_state.geo_comuna:
+        st.markdown(
+            f'<div class="geo-detected">'
+            f'📍 Detectamos que estás cerca de <strong>{st.session_state.geo_comuna.title()}</strong> '
+            f'— la usamos como punto de búsqueda. Puedes cambiarla abajo si lo prefieres.</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            '<div class="geo-box">'
+            '<span style="font-size:1.3rem">📡</span>'
+            '<div class="geo-box-text">'
+            '<strong>Detecta tu ubicación</strong> y te mostramos las clínicas más cercanas a ti — '
+            'o elige tu comuna manualmente abajo.</div></div>',
+            unsafe_allow_html=True
+        )
+with geo_col2:
+    if not st.session_state.geo_comuna:
+        pedir_geo = st.button("📡 Usar mi ubicación", use_container_width=True)
+    else:
+        limpiar_geo = st.button("✕ Cambiar comuna", use_container_width=True)
+        if limpiar_geo:
+            st.session_state.geo_comuna = None
+            st.session_state.geo_solicitada = False
+            st.rerun()
+
+# Ejecutar JS de geolocalización si el usuario hizo clic
+if not st.session_state.geo_comuna and not st.session_state.geo_solicitada:
+    pedir_geo = False  # default seguro si el botón no existe aún
+
+if "pedir_geo" in dir() and pedir_geo:
+    st.session_state.geo_solicitada = True
+    st.rerun()
+
+if st.session_state.geo_solicitada and not st.session_state.geo_comuna:
+    with st.spinner("Detectando tu ubicación..."):
+        try:
+            loc = get_geolocation()
+            if loc and "coords" in loc:
+                lat = loc["coords"]["latitude"]
+                lon = loc["coords"]["longitude"]
+                comuna = comuna_mas_cercana(lat, lon)
+                st.session_state.geo_comuna = comuna
+                st.session_state.geo_solicitada = False
+                st.rerun()
+            else:
+                st.session_state.geo_solicitada = False
+        except Exception:
+            st.session_state.geo_solicitada = False
+
+# Default de comunas: usar la detectada si existe
+default_comunas = [st.session_state.geo_comuna] if st.session_state.geo_comuna else ["providencia"]
 # ============================================================================
 # UI - FILTROS
 # ============================================================================
@@ -430,7 +536,7 @@ with col2:
 comunas_seleccionadas = st.multiselect(
     f"📍 ¿Desde qué comuna buscas? (máx. {MAX_COMUNAS})",
     options=list(TODAS_COMUNAS.keys()),
-    default=["providencia"],
+    default=default_comunas,
     max_selections=MAX_COMUNAS,
 )
 
@@ -440,13 +546,17 @@ if not comunas_seleccionadas:
 
 col3, col4 = st.columns([2, 1])
 with col3:
-    criterio = st.selectbox("📊 Ordenar por", ["Balanceado", "Más cercano primero", "Más barato primero"],
-                            help="Balanceado combina distancia, precio y tiempo de espera en un score de conveniencia")
+    criterio = st.selectbox(
+        "📊 Ordenar por",
+        ["Balanceado", "Más cercano primero", "Más barato primero"],
+        help="Balanceado combina distancia, precio y tiempo de espera en un score de conveniencia"
+    )
 with col4:
     st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
     buscar = st.button("Ver mis horas disponibles →", use_container_width=True)
 
 st.markdown("<div class='cta-trust'>Sin tarjeta · Sin registro · En menos de 2 minutos</div>", unsafe_allow_html=True)
+
 # ============================================================================
 # LÓGICA DE BÚSQUEDA
 # ============================================================================
@@ -461,8 +571,6 @@ if buscar:
             "isapre": isapre,
             "criterio": criterio,
         }
-
-# ============================================================================
 # UI - RESULTADOS
 # ============================================================================
 
