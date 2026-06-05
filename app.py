@@ -436,166 +436,70 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 # ============================================================================
+# GEOLOCALIZACIÓN — JS nativo via components.html + query_params
 # ============================================================================
-# ============================================================================
-# GEOLOCALIZACIÓN — Componente HTML nativo (sin dependencias externas)
-# ============================================================================
-# Estrategia: st.components.v1.html renderiza un iframe con JS puro que llama
-# navigator.geolocation.getCurrentPosition() y guarda lat/lon en st.query_params
-# para que Streamlit los lea en el mismo ciclo via st.query_params.
-# ─────────────────────────────────────────────────────────────────────────────
-
 import streamlit.components.v1 as components
 
 st.markdown("""
 <style>
 .geo-box {
-    background: linear-gradient(90deg, rgba(0,100,200,0.12) 0%, rgba(0,100,200,0.04) 100%);
-    border: 1px solid rgba(0,120,220,0.3); border-left: 4px solid #4a9eff;
-    border-radius: 12px; padding: 14px 20px; margin-bottom: 4px;
-    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(90deg,rgba(0,100,200,0.12),rgba(0,100,200,0.04));
+    border:1px solid rgba(0,120,220,0.3); border-left:4px solid #4a9eff;
+    border-radius:12px; padding:14px 20px; margin-bottom:4px;
+    display:flex; align-items:center; gap:12px;
 }
-.geo-box-text { font-size: 0.9rem; color: #aabbdd; line-height: 1.5; }
-.geo-box-text strong { color: #4a9eff; }
-.geo-detected {
-    background: linear-gradient(90deg, rgba(0,194,124,0.12) 0%, rgba(0,194,124,0.04) 100%);
-    border: 1px solid rgba(0,194,124,0.35); border-left: 4px solid #00c27c;
-    border-radius: 12px; padding: 12px 18px; margin-bottom: 4px;
-    font-size: 0.88rem; color: #aaddcc;
+.geo-box-text{font-size:0.9rem;color:#aabbdd;line-height:1.5;}
+.geo-box-text strong{color:#4a9eff;}
+.geo-detected{
+    background:linear-gradient(90deg,rgba(0,194,124,0.12),rgba(0,194,124,0.04));
+    border:1px solid rgba(0,194,124,0.35); border-left:4px solid #00c27c;
+    border-radius:12px; padding:12px 18px; margin-bottom:4px;
+    font-size:0.88rem; color:#aaddcc;
 }
-.geo-detected strong { color: #00c27c; }
+.geo-detected strong{color:#00c27c;}
 </style>
 """, unsafe_allow_html=True)
 
-# ── Leer coordenadas desde query_params si vienen del componente JS ──────────
-_params = st.query_params
-if "geo_lat" in _params and "geo_lon" in _params and not st.session_state.geo_comuna:
+# Leer coordenadas desde query_params (llegan del JS del iframe)
+_p = st.query_params
+if "geo_lat" in _p and "geo_lon" in _p and not st.session_state.geo_comuna:
     try:
-        _lat = float(_params["geo_lat"])
-        _lon = float(_params["geo_lon"])
-        _mejor = None
-        _mejor_dist = float("inf")
-        for _nc, _cc in TODAS_COMUNAS.items():
-            _d = geodesic((_lat, _lon), _cc).kilometers
-            if _d < _mejor_dist:
-                _mejor_dist = _d
-                _mejor = _nc
-        st.session_state.geo_comuna = _mejor
+        _lat = float(_p["geo_lat"])
+        _lon = float(_p["geo_lon"])
+        _best, _best_d = None, float("inf")
+        for _n, _c in TODAS_COMUNAS.items():
+            _d = geodesic((_lat, _lon), _c).kilometers
+            if _d < _best_d:
+                _best_d = _d
+                _best = _n
+        st.session_state.geo_comuna = _best
         st.session_state.geo_key = st.session_state.get("geo_key", 0) + 1
-        # Limpiar params para no re-procesar
         st.query_params.clear()
         st.rerun()
     except Exception:
         pass
 
-# ── UI del bloque geo ────────────────────────────────────────────────────────
-geo_col1, geo_col2 = st.columns([4, 1])
-with geo_col1:
+# UI geo
+_gc1, _gc2 = st.columns([4, 1])
+with _gc1:
     if st.session_state.geo_comuna:
         st.markdown(
-            f'<div class="geo-detected">'
-            f'✅ Ubicación detectada — comuna: <strong>{st.session_state.geo_comuna.title()}</strong>'
-            f' · Campo completado automáticamente.</div>',
+            f'<div class="geo-detected">✅ Ubicación detectada — comuna: '
+            f'<strong>{st.session_state.geo_comuna.title()}</strong> · '
+            f'Campo completado automáticamente.</div>',
             unsafe_allow_html=True
         )
     else:
         st.markdown(
             '<div class="geo-box"><span style="font-size:1.3rem">📡</span>'
-            '<div class="geo-box-text"><strong>Detecta tu ubicación</strong> para ver las'
-            ' clínicas más cercanas — o elige tu comuna manualmente abajo.</div></div>',
+            '<div class="geo-box-text"><strong>Detecta tu ubicación</strong> para ver las '
+            'clínicas más cercanas — o elige tu comuna manualmente abajo.</div></div>',
             unsafe_allow_html=True
         )
-with geo_col2:
+with _gc2:
     if not st.session_state.geo_comuna:
-        _activar_geo = st.button("📡 Usar mi ubicación", use_container_width=True)
-    else:
-        if st.button("✕ Cambiar comuna", use_container_width=True):
-            st.session_state.geo_comuna = None
-            st.session_state.geo_activa = False
-            st.session_state.geo_key = st.session_state.get("geo_key", 0) + 1
-            st.query_params.clear()
-            st.rerun()
-    _activar_geo = False  # default seguro
-
-# ── Componente JS de geolocalización ─────────────────────────────────────────
-# Se inyecta SOLO cuando el usuario presiona el botón.
-# Usa navigator.geolocation nativo + redirige con lat/lon en query_params.
-if st.session_state.get("geo_activa", False):
-    _geo_html = """
-    <div id="geo-status" style="font-family:Inter,sans-serif;font-size:0.85rem;
-         color:#aabbdd;padding:10px 0;">
-      ⏳ Solicitando permiso de ubicación...
-    </div>
-    <script>
-    (function() {
-      var status = document.getElementById('geo-status');
-      if (!navigator.geolocation) {
-        status.innerHTML = '❌ Tu navegador no soporta geolocalización.';
-        return;
-      }
-      status.innerHTML = '📡 Detectando ubicación — por favor acepta el permiso...';
-      navigator.geolocation.getCurrentPosition(
-        function(pos) {
-          var lat = pos.coords.latitude.toFixed(6);
-          var lon = pos.coords.longitude.toFixed(6);
-          status.innerHTML = '✅ Ubicación obtenida, cargando...';
-          // Redirigir al parent con los params
-          var base = window.parent.location.href.split('?')[0];
-          window.parent.location.href = base + '?geo_lat=' + lat + '&geo_lon=' + lon;
-        },
-        function(err) {
-          var msg = {
-            1: '⚠️ Permiso denegado. Activa la ubicación en tu navegador.',
-            2: '⚠️ No se pudo detectar la ubicación.',
-            3: '⚠️ Tiempo de espera agotado.'
-          };
-          status.innerHTML = msg[err.code] || '⚠️ Error al obtener ubicación.';
-          // Notificar a Streamlit para limpiar el estado
-          setTimeout(function() {
-            window.parent.postMessage({type: 'geo_error'}, '*');
-          }, 2000);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    })();
-    </script>
-    """
-    components.html(_geo_html, height=60)
-
-if "_activar_geo" in dir() and _activar_geo:
-    st.session_state.geo_activa = True
-    st.rerun()
-
-# Default de comunas: vacío si no hay geo, o la detectada
-default_comunas = [st.session_state.geo_comuna] if st.session_state.geo_comuna else []
-geo_key = st.session_state.get("geo_key", 0)
-
-                st.rerun()
-            else:
-                st.session_state.geo_activa = False
-        except Exception as e:
-            st.session_state.geo_activa = False
-
-# ── PASO 2: Mostrar UI del bloque geo ──────────────────────────────────────
-geo_col1, geo_col2 = st.columns([4, 1])
-with geo_col1:
-    if st.session_state.geo_comuna:
-        st.markdown(
-            f'<div class="geo-detected">'
-            f'✅ Ubicación detectada — comuna: <strong>{st.session_state.geo_comuna.title()}</strong>'
-            f' · El campo de búsqueda ya fue completado automáticamente.</div>',
-            unsafe_allow_html=True
-        )
-    else:
-        st.markdown(
-            '<div class="geo-box"><span style="font-size:1.3rem">📡</span>'
-            '<div class="geo-box-text"><strong>Detecta tu ubicación</strong> para ver las'
-            ' clínicas más cercanas — o elige tu comuna manualmente abajo.</div></div>',
-            unsafe_allow_html=True
-        )
-with geo_col2:
-    if not st.session_state.geo_comuna:
-        if st.button("📡 Usar mi ubicación", use_container_width=True):
+        _btn_geo = st.button("📡 Usar mi ubicación", use_container_width=True)
+        if _btn_geo:
             st.session_state.geo_activa = True
             st.rerun()
     else:
@@ -603,11 +507,43 @@ with geo_col2:
             st.session_state.geo_comuna = None
             st.session_state.geo_activa = False
             st.session_state.geo_key = st.session_state.get("geo_key", 0) + 1
+            st.query_params.clear()
             st.rerun()
 
-# Default de comunas — usa key dinámico para forzar reset del widget cuando cambia geo
-default_comunas = [st.session_state.geo_comuna] if st.session_state.geo_comuna else []
-geo_key = st.session_state.get("geo_key", 0)
+# Mostrar el componente JS solo cuando geo_activa=True
+if st.session_state.get("geo_activa", False):
+    components.html("""
+    <div id="s" style="font-family:Inter,sans-serif;font-size:0.85rem;color:#aabbdd;padding:8px 0">
+        ⏳ Solicitando permiso de ubicación...
+    </div>
+    <script>
+    (function(){
+        var s = document.getElementById('s');
+        if(!navigator.geolocation){
+            s.innerHTML='❌ Tu navegador no soporta geolocalización.'; return;
+        }
+        s.innerHTML='📡 Detectando — acepta el permiso del navegador...';
+        navigator.geolocation.getCurrentPosition(
+            function(p){
+                s.innerHTML='✅ Listo, cargando...';
+                var base = window.parent.location.href.split('?')[0];
+                window.parent.location.href = base+'?geo_lat='+p.coords.latitude.toFixed(6)+'&geo_lon='+p.coords.longitude.toFixed(6);
+            },
+            function(e){
+                var m={1:'⚠️ Permiso denegado — activa la ubicación en tu navegador.',
+                        2:'⚠️ No se pudo obtener la ubicación.',
+                        3:'⚠️ Tiempo de espera agotado.'};
+                s.innerHTML = m[e.code]||'⚠️ Error al obtener ubicación.';
+            },
+            {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+        );
+    })();
+    </script>
+    """, height=50)
+
+# Defaults para el multiselect
+_default_comunas = [st.session_state.geo_comuna] if st.session_state.geo_comuna else []
+_geo_key = st.session_state.get("geo_key", 0)
 
 # ============================================================================
 # UI - FILTROS
@@ -619,16 +555,17 @@ with col1:
 with col2:
     isapre = st.selectbox("🏦 Tu previsión de salud", list(CONVENIOS.keys()))
 
+_lbl = "📍 ¿Desde qué comuna buscas? (máx. 3)" + (" — detectada ✓" if st.session_state.geo_comuna else " — o usa 📡 arriba")
 comunas_seleccionadas = st.multiselect(
-    f"📍 ¿Desde qué comuna buscas? (máx. {MAX_COMUNAS})" + (" — detectada automáticamente ✓" if st.session_state.geo_comuna else " — o usa 📡 para detectar tu ubicación"),
+    _lbl,
     options=list(TODAS_COMUNAS.keys()),
-    default=default_comunas,
+    default=_default_comunas,
     max_selections=MAX_COMUNAS,
-    key=f"comunas_{geo_key}",
+    key=f"comunas_widget_{_geo_key}",
 )
 
 if not comunas_seleccionadas:
-    st.info("📍 Selecciona tu comuna arriba — o usa el botón **📡 Usar mi ubicación** para detectarla automáticamente.")
+    st.info("📍 Selecciona tu comuna — o pulsa **📡 Usar mi ubicación** para detectarla.")
     st.stop()
 
 col3, col4 = st.columns([2, 1])
@@ -636,7 +573,7 @@ with col3:
     criterio = st.selectbox(
         "📊 Ordenar por",
         ["Balanceado", "Más cercano primero", "Más barato primero"],
-        help="Balanceado combina distancia, precio y tiempo de espera en un score de conveniencia"
+        help="Balanceado combina distancia, precio y tiempo de espera"
     )
 with col4:
     st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
@@ -658,6 +595,7 @@ if buscar:
             "isapre": isapre,
             "criterio": criterio,
         }
+
 # UI - RESULTADOS
 # ============================================================================
 
