@@ -43,8 +43,10 @@ if "ultima_busqueda" not in st.session_state:
     st.session_state.ultima_busqueda = {}
 if "geo_comuna" not in st.session_state:
     st.session_state.geo_comuna = None
-if "geo_solicitada" not in st.session_state:
-    st.session_state.geo_solicitada = False
+if "geo_activa" not in st.session_state:
+    st.session_state.geo_activa = False
+if "geo_key" not in st.session_state:
+    st.session_state.geo_key = 0
 # CSS — SISTEMA DE DISEÑO COMPLETO
 # ============================================================================
 
@@ -435,94 +437,90 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 # ============================================================================
-# GEOLOCALIZACIÓN — Detección automática de comuna (Thaler opt-out default)
+# ============================================================================
+# GEOLOCALIZACIÓN — Detección automática (patrón correcto para streamlit-js-eval)
 # ============================================================================
 
-# CSS extra para el bloque geo
 st.markdown("""
 <style>
 .geo-box {
     background: linear-gradient(90deg, rgba(0,100,200,0.12) 0%, rgba(0,100,200,0.04) 100%);
-    border: 1px solid rgba(0,120,220,0.3);
-    border-left: 4px solid #4a9eff;
-    border-radius: 12px;
-    padding: 14px 20px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    border: 1px solid rgba(0,120,220,0.3); border-left: 4px solid #4a9eff;
+    border-radius: 12px; padding: 14px 20px; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 12px;
 }
 .geo-box-text { font-size: 0.9rem; color: #aabbdd; line-height: 1.5; }
 .geo-box-text strong { color: #4a9eff; }
 .geo-detected {
     background: linear-gradient(90deg, rgba(0,194,124,0.12) 0%, rgba(0,194,124,0.04) 100%);
-    border: 1px solid rgba(0,194,124,0.35);
-    border-left: 4px solid #00c27c;
-    border-radius: 12px;
-    padding: 12px 18px;
-    margin-bottom: 16px;
-    font-size: 0.88rem;
-    color: #aaddcc;
+    border: 1px solid rgba(0,194,124,0.35); border-left: 4px solid #00c27c;
+    border-radius: 12px; padding: 12px 18px; margin-bottom: 4px;
+    font-size: 0.88rem; color: #aaddcc;
 }
 .geo-detected strong { color: #00c27c; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Bloque de geolocalización ────────────────────────────────────────────────
+# ── PASO 1: Si get_geolocation está activo, procesarlo PRIMERO antes de renderizar UI ──
+# Esto evita el bug de doble-rerun: llamamos get_geolocation() al inicio del ciclo,
+# cuando geo_activa=True, y guardamos el resultado antes de continuar.
+if st.session_state.get("geo_activa", False) and not st.session_state.geo_comuna:
+    with st.spinner("📡 Detectando tu ubicación..."):
+        try:
+            loc = get_geolocation()
+            if loc and isinstance(loc, dict) and "coords" in loc:
+                lat = loc["coords"]["latitude"]
+                lon = loc["coords"]["longitude"]
+                # Encontrar comuna más cercana
+                mejor = None
+                mejor_dist = float("inf")
+                for nombre_c, coords_c in TODAS_COMUNAS.items():
+                    d = geodesic((lat, lon), coords_c).kilometers
+                    if d < mejor_dist:
+                        mejor_dist = d
+                        mejor = nombre_c
+                st.session_state.geo_comuna = mejor
+                st.session_state.geo_activa = False
+                st.session_state.geo_key = st.session_state.get("geo_key", 0) + 1
+                st.rerun()
+            else:
+                st.session_state.geo_activa = False
+        except Exception as e:
+            st.session_state.geo_activa = False
+
+# ── PASO 2: Mostrar UI del bloque geo ──────────────────────────────────────
 geo_col1, geo_col2 = st.columns([4, 1])
 with geo_col1:
     if st.session_state.geo_comuna:
         st.markdown(
             f'<div class="geo-detected">'
-            f'📍 Detectamos que estás cerca de <strong>{st.session_state.geo_comuna.title()}</strong> '
-            f'— la usamos como punto de búsqueda. Puedes cambiarla abajo si lo prefieres.</div>',
+            f'📍 Detectamos que estás cerca de <strong>{st.session_state.geo_comuna.title()}</strong>'
+            f' — ya la usamos como tu punto de búsqueda. Puedes cambiarla abajo.</div>',
             unsafe_allow_html=True
         )
     else:
         st.markdown(
-            '<div class="geo-box">'
-            '<span style="font-size:1.3rem">📡</span>'
-            '<div class="geo-box-text">'
-            '<strong>Detecta tu ubicación</strong> y te mostramos las clínicas más cercanas a ti — '
-            'o elige tu comuna manualmente abajo.</div></div>',
+            '<div class="geo-box"><span style="font-size:1.3rem">📡</span>'
+            '<div class="geo-box-text"><strong>Detecta tu ubicación</strong> para ver las'
+            ' clínicas más cercanas — o elige tu comuna manualmente abajo.</div></div>',
             unsafe_allow_html=True
         )
 with geo_col2:
     if not st.session_state.geo_comuna:
-        pedir_geo = st.button("📡 Usar mi ubicación", use_container_width=True)
+        if st.button("📡 Usar mi ubicación", use_container_width=True):
+            st.session_state.geo_activa = True
+            st.rerun()
     else:
-        limpiar_geo = st.button("✕ Cambiar comuna", use_container_width=True)
-        if limpiar_geo:
+        if st.button("✕ Cambiar comuna", use_container_width=True):
             st.session_state.geo_comuna = None
-            st.session_state.geo_solicitada = False
+            st.session_state.geo_activa = False
+            st.session_state.geo_key = st.session_state.get("geo_key", 0) + 1
             st.rerun()
 
-# Ejecutar JS de geolocalización si el usuario hizo clic
-if not st.session_state.geo_comuna and not st.session_state.geo_solicitada:
-    pedir_geo = False  # default seguro si el botón no existe aún
-
-if "pedir_geo" in dir() and pedir_geo:
-    st.session_state.geo_solicitada = True
-    st.rerun()
-
-if st.session_state.geo_solicitada and not st.session_state.geo_comuna:
-    with st.spinner("Detectando tu ubicación..."):
-        try:
-            loc = get_geolocation()
-            if loc and "coords" in loc:
-                lat = loc["coords"]["latitude"]
-                lon = loc["coords"]["longitude"]
-                comuna = comuna_mas_cercana(lat, lon)
-                st.session_state.geo_comuna = comuna
-                st.session_state.geo_solicitada = False
-                st.rerun()
-            else:
-                st.session_state.geo_solicitada = False
-        except Exception:
-            st.session_state.geo_solicitada = False
-
-# Default de comunas: usar la detectada si existe
+# Default de comunas — usa key dinámico para forzar reset del widget cuando cambia geo
 default_comunas = [st.session_state.geo_comuna] if st.session_state.geo_comuna else ["providencia"]
+geo_key = st.session_state.get("geo_key", 0)
+
 # ============================================================================
 # UI - FILTROS
 # ============================================================================
@@ -538,6 +536,7 @@ comunas_seleccionadas = st.multiselect(
     options=list(TODAS_COMUNAS.keys()),
     default=default_comunas,
     max_selections=MAX_COMUNAS,
+    key=f"comunas_{geo_key}",
 )
 
 if not comunas_seleccionadas:
