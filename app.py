@@ -458,6 +458,24 @@ st.markdown("""
     font-size:0.88rem; color:#aaddcc;
 }
 .geo-detected strong{color:#00c27c;}
+
+/* Etiqueta del boton de ubicacion */
+.geo-btn-label{
+  display:block; text-align:center; font-size:0.8rem; font-weight:600;
+  color:#00c27c; margin-bottom:2px; letter-spacing:0.2px;
+}
+/* Contenedor verde alrededor del icono de geolocalizacion */
+iframe[title="streamlit_geolocation.streamlit_geolocation"]{
+  display:block; margin:0 auto;
+}
+div:has(> iframe[title="streamlit_geolocation.streamlit_geolocation"]){
+  background:linear-gradient(135deg,#00c27c 0%,#00a866 100%);
+  border-radius:12px; padding:8px 0; text-align:center;
+  box-shadow:0 4px 20px rgba(0,194,124,0.3); transition:all 0.2s ease;
+}
+div:has(> iframe[title="streamlit_geolocation.streamlit_geolocation"]):hover{
+  box-shadow:0 6px 28px rgba(0,194,124,0.45); transform:translateY(-1px);
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -501,7 +519,14 @@ with _gc2:
     if not st.session_state.geo_comuna:
         # Componente de geolocalizacion (canal bidireccional nativo).
         # Devuelve lat/lon directamente a Python sin manipular la URL.
+        # Etiqueta visible sobre el icono para que el usuario sepa que hacer.
+        st.markdown(
+            '<div class="geo-btn-label">\U0001F4E1 Usar mi ubicacion</div>',
+            unsafe_allow_html=True
+        )
+        st.markdown('<div class="geo-btn-wrap">', unsafe_allow_html=True)
         _loc = streamlit_geolocation()
+        st.markdown('</div>', unsafe_allow_html=True)
         if _loc and _loc.get("latitude") is not None and _loc.get("longitude") is not None:
             try:
                 _lat = float(_loc["latitude"])
