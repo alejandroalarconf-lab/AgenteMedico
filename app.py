@@ -439,6 +439,7 @@ st.markdown("""
 # GEOLOCALIZACIÓN — JS nativo via components.html + query_params
 # ============================================================================
 import streamlit.components.v1 as components
+from streamlit_geolocation import streamlit_geolocation
 
 st.markdown("""
 <style>
@@ -498,57 +499,24 @@ with _gc1:
         )
 with _gc2:
     if not st.session_state.geo_comuna:
-        _btn_geo = st.button("📡 Usar mi ubicación", use_container_width=True)
-        if _btn_geo:
-            st.session_state.geo_activa = True
-            st.rerun()
+        # Componente de geolocalizacion (canal bidireccional nativo).
+        # Devuelve lat/lon directamente a Python sin manipular la URL.
+        _loc = streamlit_geolocation()
+        if _loc and _loc.get("latitude") is not None and _loc.get("longitude") is not None:
+            try:
+                _lat = float(_loc["latitude"])
+                _lon = float(_loc["longitude"])
+                st.session_state.geo_comuna = comuna_mas_cercana(_lat, _lon)
+                st.session_state.geo_key = st.session_state.get("geo_key", 0) + 1
+                st.rerun()
+            except (TypeError, ValueError):
+                st.warning("No pudimos leer tu ubicacion. Elige tu comuna manualmente abajo.")
     else:
         if st.button("✕ Cambiar comuna", use_container_width=True):
             st.session_state.geo_comuna = None
             st.session_state.geo_activa = False
             st.session_state.geo_key = st.session_state.get("geo_key", 0) + 1
-            st.query_params.clear()
             st.rerun()
-
-# Mostrar el componente JS solo cuando geo_activa=True
-if st.session_state.get("geo_activa", False):
-    components.html("""
-    <div id="s" style="font-family:Inter,sans-serif;font-size:0.85rem;color:#aabbdd;padding:8px 0">
-        ⏳ Solicitando permiso de ubicación...
-    </div>
-    <script>
-    (function(){
-        var s = document.getElementById('s');
-        if(!navigator.geolocation){
-            s.innerHTML='❌ Tu navegador no soporta geolocalización.'; return;
-        }
-        s.innerHTML='📡 Detectando — acepta el permiso del navegador...';
-        navigator.geolocation.getCurrentPosition(
-            function(p){
-                s.innerHTML='✅ Listo, cargando...';
-                var topWin = window.top || window.parent;
-            var base = topWin.location.href.split('?')[0];
-            var url = base + '?geo_lat=' + p.coords.latitude.toFixed(6) + '&geo_lon=' + p.coords.longitude.toFixed(6);
-            var navigated = false;
-            try { var w = window.open(url, '_top'); if (w) { navigated = true; } } catch (e1) {}
-            if (!navigated) { try { topWin.location.href = url; navigated = true; } catch (e2) {} }
-            if (!navigated) {
-              var a = document.createElement('a');
-              a.href = url; a.target = '_top'; a.rel = 'noopener';
-              document.body.appendChild(a); a.click();
-            }
-            },
-            function(e){
-                var m={1:'⚠️ Permiso denegado — activa la ubicación en tu navegador.',
-                        2:'⚠️ No se pudo obtener la ubicación.',
-                        3:'⚠️ Tiempo de espera agotado.'};
-                s.innerHTML = m[e.code]||'⚠️ Error al obtener ubicación.';
-            },
-            {enableHighAccuracy:true,timeout:10000,maximumAge:0}
-        );
-    })();
-    </script>
-    """, height=50)
 
 # Defaults para el multiselect
 _default_comunas = [st.session_state.geo_comuna] if st.session_state.geo_comuna else []
