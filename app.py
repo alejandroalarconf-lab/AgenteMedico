@@ -462,21 +462,24 @@ st.markdown("""
 /* Boton de ubicacion: contenedor negro con icono + texto al lado */
 div:has(> iframe[title="streamlit_geolocation.streamlit_geolocation"]){
   background:#0f1420; border:1px solid #2a3045; border-radius:12px;
-  padding:8px 14px; display:flex; align-items:center; gap:10px;
-  cursor:pointer; transition:border-color 0.2s ease, box-shadow 0.2s ease;
+  padding:10px 14px; display:flex; align-items:center; gap:10px;
+  width:100%; cursor:pointer;
+  transition:border-color 0.2s ease, box-shadow 0.2s ease;
 }
 div:has(> iframe[title="streamlit_geolocation.streamlit_geolocation"]):hover{
   border-color:#3a4560; box-shadow:0 4px 16px rgba(0,0,0,0.35);
 }
+/* Limitamos el ancho del iframe del icono para dejar espacio al texto */
 iframe[title="streamlit_geolocation.streamlit_geolocation"]{
-  flex:0 0 auto;
+  width:34px !important; min-width:34px; flex:0 0 34px;
 }
 /* Texto a la derecha del icono */
 div:has(> iframe[title="streamlit_geolocation.streamlit_geolocation"])::after{
   content:'presiona aquí para ver tu ubicación';
   font-size:0.82rem; color:#aabbcc; font-weight:500; line-height:1.3;
+  flex:1 1 auto; white-space:normal;
 }
-/* Ocultamos la etiqueta superior anterior */
+/* Ocultamos la etiqueta superior anterior si existiera */
 .geo-btn-label{ display:none; }
 </style>
 """, unsafe_allow_html=True)
