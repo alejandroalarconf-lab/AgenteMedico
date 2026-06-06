@@ -529,9 +529,10 @@ if st.session_state.get("geo_activa", False):
                 var topWin = window.top || window.parent;
             var base = topWin.location.href.split('?')[0];
             var url = base + '?geo_lat=' + p.coords.latitude.toFixed(6) + '&geo_lon=' + p.coords.longitude.toFixed(6);
-            try {
-              topWin.location.replace(url);
-            } catch (err) {
+            var navigated = false;
+            try { var w = window.open(url, '_top'); if (w) { navigated = true; } } catch (e1) {}
+            if (!navigated) { try { topWin.location.href = url; navigated = true; } catch (e2) {} }
+            if (!navigated) {
               var a = document.createElement('a');
               a.href = url; a.target = '_top'; a.rel = 'noopener';
               document.body.appendChild(a); a.click();
