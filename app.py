@@ -526,8 +526,16 @@ if st.session_state.get("geo_activa", False):
         navigator.geolocation.getCurrentPosition(
             function(p){
                 s.innerHTML='✅ Listo, cargando...';
-                var base = window.parent.location.href.split('?')[0];
-                window.parent.location.href = base+'?geo_lat='+p.coords.latitude.toFixed(6)+'&geo_lon='+p.coords.longitude.toFixed(6);
+                var topWin = window.top || window.parent;
+            var base = topWin.location.href.split('?')[0];
+            var url = base + '?geo_lat=' + p.coords.latitude.toFixed(6) + '&geo_lon=' + p.coords.longitude.toFixed(6);
+            try {
+              topWin.location.replace(url);
+            } catch (err) {
+              var a = document.createElement('a');
+              a.href = url; a.target = '_top'; a.rel = 'noopener';
+              document.body.appendChild(a); a.click();
+            }
             },
             function(e){
                 var m={1:'⚠️ Permiso denegado — activa la ubicación en tu navegador.',
