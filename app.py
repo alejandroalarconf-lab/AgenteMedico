@@ -223,13 +223,13 @@ CENTROS_MEDICOS = [
 ]
 
 CONVENIOS = {
-    "banmédica":     ["Clínica Alemana", "Clínica Las Condes", "Clínica Bupa Santiago", "Clínica Santa María", "Clínica INDISA", "Clínica Dávila Recoleta", "Clínica MEDS", "Clínica U. de los Andes", "Clínica Tabancura"],
-    "consalud":      ["RedSalud Vitacura", "RedSalud Providencia", "RedSalud La Florida", "IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "IntegraMédica Las Condes", "IntegraMédica Maipú", "IntegraMédica La Florida", "Clínica Dávila Recoleta", "Clínica Avansalud Providencia", "Clínica Avansalud Las Condes"],
-    "colmena":       ["UC Christus", "IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "Clínica INDISA", "Clínica Bicentenario Puente Alto", "Clínica Bicentenario Las Condes"],
-    "vida tres":     ["Clínica Bupa Santiago", "Clínica Santa María", "Clínica Alemana", "Clínica Las Condes", "Clínica Tabancura"],
-    "nueva masvida": ["RedSalud Vitacura", "RedSalud Providencia", "RedSalud La Florida", "IntegraMédica Alameda", "Clínica INDISA"],
+    "banmédica":     ["Clínica Alemana", "Clínica U. de los Andes", "UC Christus", "Clínica Santa María", "Clínica Dávila Recoleta", "IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "IntegraMédica Las Condes", "IntegraMédica Maipú", "IntegraMédica La Florida", "Clínica Bicentenario Puente Alto", "Clínica Bicentenario Las Condes", "Clínica INDISA"],
+    "consalud":      ["RedSalud Vitacura", "RedSalud Providencia", "RedSalud La Florida", "IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "IntegraMédica Las Condes", "IntegraMédica Maipú", "IntegraMédica La Florida", "Clínica Avansalud Providencia", "Clínica Avansalud Las Condes", "Clínica Dávila Recoleta", "Clínica Bupa Santiago", "Clínica INDISA"],
+    "colmena":       ["UC Christus", "IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "Clínica INDISA", "Clínica Bicentenario Puente Alto", "Clínica Bicentenario Las Condes", "Clínica Avansalud Providencia", "Clínica Avansalud Las Condes", "Clínica Dávila Recoleta"],
+    "vida tres":     ["Clínica Alemana", "Clínica Santa María", "Clínica INDISA", "UC Christus", "Clínica U. de los Andes", "Hospital del Profesor", "Clínica Bupa Santiago"],
+    "nueva masvida": ["IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "IntegraMédica Las Condes", "IntegraMédica Maipú", "IntegraMédica La Florida", "Clínica Bupa Santiago", "Clínica Dávila Recoleta", "Clínica Las Condes", "Clínica Avansalud Providencia", "Clínica Avansalud Las Condes", "RedSalud Vitacura", "RedSalud Providencia", "RedSalud La Florida", "Clínica INDISA"],
     "esencial":      ["IntegraMédica Alameda", "IntegraMédica Ñuñoa", "RedSalud Providencia", "Clínica Avansalud Providencia"],
-    "fonasa":        [],
+    "fonasa":        ["RedSalud Vitacura", "RedSalud Providencia", "RedSalud La Florida", "IntegraMédica Alameda", "IntegraMédica Ñuñoa", "IntegraMédica Providencia", "IntegraMédica Las Condes", "IntegraMédica Maipú", "IntegraMédica La Florida", "UC Christus", "Clínica Dávila Recoleta", "Clínica Bupa Santiago", "Clínica INDISA", "Clínica Avansalud Providencia", "Clínica Avansalud Las Condes", "Hospital del Profesor"],
 }
 
 TODAS_COMUNAS = {
@@ -293,6 +293,9 @@ MEDICOS_POR_ESPECIALIDAD = {
 
 def formatear_precio(valor: int) -> str:
     return f"${valor:,.0f}".replace(",", ".")
+
+def formatear_rango(valor_min: int, valor_max: int) -> str:
+    return f"{formatear_precio(valor_min)} \u2013 {formatear_precio(valor_max)}"
 
 def calcular_score(distancia_km, copago, dias_espera, ahorro):
     """Score de conveniencia 1-10 (mayor = mejor)"""
@@ -374,9 +377,11 @@ def buscar_horas(especialidad: str, comunas_seleccionadas: list, isapre: str, cr
             dias_espera_val = random.randint(min_dias, max_dias)
         opciones_hora = generar_horas_disponibles(dias_espera_val, especialidad)
         score = calcular_score(distancia_minima, copago, dias_espera_val, ahorro)
+        copago_min = int(copago * 0.8)
+        copago_max = int(copago * 1.2)
         mejores_por_clinica[nombre] = {
             "nombre": nombre, "distancia_km": distancia_minima,
-            "comuna_origen": comuna_mas_cercana, "copago": copago,
+            "comuna_origen": comuna_mas_cercana, "copago": copago, "copago_min": copago_min, "copago_max": copago_max,
             "precio_base": precio_base, "dias_espera": dias_espera_val,
             "convenio": etiqueta_convenio, "ahorro": ahorro,
             "url_reserva": centro.get("url_reserva", "#"),
@@ -644,16 +649,17 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
                 with col2:
                     if res["convenio"] == "convenio":
                         st.markdown(f"~~{formatear_precio(res['precio_base'])}~~")
-                        st.markdown(f"### {formatear_precio(res['copago'])}")
+                        st.markdown(f"#### {formatear_rango(res['copago_min'], res['copago_max'])}")
                         ahorro_str = formatear_precio(res["precio_base"] - res["copago"])
                         st.markdown(f'<div style="color:#00c27c;font-size:0.82rem;font-weight:600">💚 Ahorras {ahorro_str} vs. precio normal</div>', unsafe_allow_html=True)
                     elif res["convenio"] == "fonasa":
-                        st.markdown(f"### {formatear_precio(res['copago'])}")
+                        st.markdown(f"#### {formatear_rango(res['copago_min'], res['copago_max'])}")
                         st.caption("precio Fonasa")
                     else:
                         st.markdown(f"~~{formatear_precio(res['precio_base'])}~~")
-                        st.markdown(f"### {formatear_precio(res['copago'])}")
+                        st.markdown(f"#### {formatear_rango(res['copago_min'], res['copago_max'])}")
                         st.caption("precio sin convenio")
+                    st.caption("\U0001F4A1 valor referencial \u2014 confirma con tu isapre")
 
                 col_a, col_b, col_c = st.columns(3)
                 with col_a:
