@@ -414,9 +414,9 @@ def comuna_mas_cercana(lat: float, lon: float) -> str:
 st.markdown("""
 <div class="hero-wrapper">
   <div class="hero-title">✅ Tu hora médica al <span>mejor precio</span> — hoy mismo</div>
-  <div class="hero-subtitle">Compara 27 clínicas en Santiago · Compatible con Isapre y Fonasa · Sin registro</div>
+  <div class="hero-subtitle">Compara 26 clínicas en Santiago · Compatible con Isapre y Fonasa · Sin registro</div>
   <div class="hero-badges">
-    <span class="badge">🏥 27 centros médicos</span>
+    <span class="badge">🏥 26 centros médicos</span>
     <span class="badge">📋 24 especialidades</span>
     <span class="badge badge-green">💚 Sin costo de reserva</span>
     <span class="badge">📍 Región Metropolitana</span>
@@ -588,7 +588,7 @@ st.markdown("<div class='cta-trust'>Sin tarjeta · Sin registro · En menos de 2
 
 if buscar:
     st.session_state.busqueda_activa = True
-    with st.spinner("Buscando las mejores horas en 27 centros médicos..."):
+    with st.spinner("Buscando las mejores horas en 26 centros médicos..."):
         st.session_state.resultados = buscar_horas(especialidad, comunas_seleccionadas, isapre, criterio)
         st.session_state.ultima_busqueda = {
             "especialidad": especialidad,
@@ -616,7 +616,7 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
 
         st.markdown(f"### {busqueda['especialidad'].title()}")
         st.markdown(
-            f'<div class="results-count">📊 Mostrando {len(resultados)} de 27 centros · {busqueda["criterio"].lower()}</div>',
+            f'<div class="results-count">📊 Mostrando {len(resultados)} de 26 centros · {busqueda["criterio"].lower()}</div>',
             unsafe_allow_html=True
         )
         st.markdown("---")
@@ -702,4 +702,4 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
 # ============================================================================
 
 st.markdown("---")
-st.caption("✅ Buscador de horas médicas · 27 centros médicos · 24 especialidades · Región Metropolitana, Chile · Sin costo de reserva")
+st.caption("✅ Buscador de horas médicas · 26 centros médicos · 24 especialidades · Región Metropolitana, Chile · Sin costo de reserva")
