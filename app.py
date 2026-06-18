@@ -325,6 +325,31 @@ def generar_horas_disponibles(dias_espera: int, especialidad: str) -> list:
     opciones.sort(key=lambda x: (x["fecha"], x["hora"]))
     return opciones
 
+def generar_link_whatsapp(res: dict, especialidad: str) -> str:
+    """Genera un link de WhatsApp con los datos de la clinica."""
+    nombre    = res["nombre"]
+    distancia = f"{res['distancia_km']:.1f} km"
+    comuna    = res["comuna_origen"].title()
+    copago    = f"${res['copago_min']:,.0f} - ${res['copago_max']:,.0f}".replace(",", ".")
+    url_reserva = res.get("url_reserva", "")
+
+    primera_hora = ""
+    if res.get("opciones_hora"):
+        o = res["opciones_hora"][0]
+        primera_hora = f"\n📅 Primera hora: {o['fecha']} a las {o['hora']} hrs. con {o['medico']}"
+
+    texto = (
+        f"🏥 *{nombre}* — {especialidad.title()}\n"
+        f"📍 {distancia} desde {comuna}\n"
+        f"💰 Copago referencial: {copago}"
+        f"{primera_hora}\n"
+        f"🔗 Reservar: {url_reserva}"
+    )
+
+    import urllib.parse
+    return "https://wa.me/?text=" + urllib.parse.quote(texto)
+
+
 def dias_espera_label(dias: int) -> tuple:
     if dias <= 1:
         return "Mañana", "verde"
@@ -689,6 +714,26 @@ if st.session_state.busqueda_activa and st.session_state.resultados is not None:
 
                 if res["url_reserva"] != "#":
                     st.link_button(f"📅 Reservar hora gratis en {res['nombre']} →", res['url_reserva'], use_container_width=True)
+                # Boton compartir WhatsApp
+                wa_link = generar_link_whatsapp(res, busqueda["especialidad"])
+                st.markdown(
+                    f'''
+                    <a href="{wa_link}" target="_blank" style="
+                        display: flex; align-items: center; justify-content: center; gap: 8px;
+                        background: #25D366; color: #fff; font-weight: 600;
+                        font-size: 0.9rem; border-radius: 10px; padding: 11px 16px;
+                        text-decoration: none; margin-top: 8px; font-family: Inter, sans-serif;
+                        transition: background 0.2s ease;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                             fill="currentColor" style="flex-shrink:0">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.845L.057 23.571a.75.75 0 0 0 .921.921l5.726-1.471A11.943 11.943 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.693 9.693 0 0 1-5.031-1.406l-.361-.214-3.741.961.979-3.741-.234-.374A9.693 9.693 0 0 1 2.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12S17.385 21.75 12 21.75z"/>
+                        </svg>
+                        Compartir por WhatsApp
+                    </a>
+                    ''',
+                    unsafe_allow_html=True
+                )
                 st.markdown('<div class="cta-trust">Sin tarjeta · Sin registro · En menos de 2 minutos</div>', unsafe_allow_html=True)
                 st.markdown("---")
 
